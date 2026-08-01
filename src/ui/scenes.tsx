@@ -1,8 +1,12 @@
+import { useState } from 'react';
 import type { Case, CharacterId, Layer } from '../types.js';
-import { BOOKS } from '../content/books/index.js';
+import { BOOKS, LIBRARY } from '../content/books/index.js';
 import { CAST } from '../content/cast.js';
 import { SHELVES } from '../content/shelves.js';
 import { THEMES } from '../content/themes.js';
+
+/** 一座全体で持ち越せる冊数。 */
+const CARRY_MAX = 5;
 
 /** 五人が横に並んだ一枚絵。左から柊・望月・真壁・瀬能・朝倉。 */
 export const PORTRAIT_ORDER: CharacterId[] = [
@@ -35,12 +39,16 @@ export function Title({
   onPick,
   narrow,
   onToggleWidth,
+  gothic,
+  onToggleFont,
 }: {
   cases: Case[];
   archive: string[];
   onPick: (caseIdx: number) => void;
   narrow: boolean;
   onToggleWidth: () => void;
+  gothic: boolean;
+  onToggleFont: () => void;
 }) {
   const read = BOOKS.filter((b) => archive.includes(b.id));
   const byShelf = new Map<string, typeof read>();
@@ -53,6 +61,7 @@ export function Title({
     <div className="title">
       <div className="tbar">
         <h1>柊書房</h1>
+        <button className="ghost" onClick={onToggleFont}>{gothic ? '明朝体' : 'ゴシック体'}</button>
         <button className="ghost" onClick={onToggleWidth}>{narrow ? 'PC表示' : 'スマホ表示'}</button>
       </div>
 
@@ -188,6 +197,95 @@ export function Epilogue({
           <button className="go" onClick={onClose}>店へ戻る</button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────
+// 読了の持ち越し — 次の周へ、五冊だけ
+// ─────────────────────────────────────────────
+
+export function CarryPick({
+  read,
+  onDone,
+}: {
+  read: Partial<Record<CharacterId, string[]>>;
+  onDone: (sel: Partial<Record<CharacterId, string[]>>) => void;
+}) {
+  // 同じ本を二人が読んでいても、持ち越しは一冊。最初に読んだ者を持ち主とする。
+  const owner = new Map<string, CharacterId>();
+  const byWho = new Map<CharacterId, string[]>();
+  for (const [who, ids] of Object.entries(read) as Array<[CharacterId, string[]]>) {
+    for (const id of ids ?? []) {
+      if (owner.has(id) || !LIBRARY.get(id)) continue;
+      owner.set(id, who);
+      const l = byWho.get(who);
+      if (l) l.push(id); else byWho.set(who, [id]);
+    }
+  }
+
+  const [sel, setSel] = useState<Set<string>>(() => new Set());
+  const toggle = (id: string) =>
+    setSel((prev) => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id);
+      else if (n.size < CARRY_MAX) n.add(id);
+      return n;
+    });
+  const finish = () => {
+    const out: Partial<Record<CharacterId, string[]>> = {};
+    for (const id of sel) {
+      const w = owner.get(id)!;
+      (out[w] ??= []).push(id);
+    }
+    onDone(out);
+  };
+
+  const empty = owner.size === 0;
+
+  return (
+    <div className="carry">
+      <h1 className="it">持ち越す本を選ぶ</h1>
+      <p className="lead">
+        今回の周で読んだ本のうち、<b>{CARRY_MAX}冊まで</b>を次の事件へ持ち越せる。
+        どれだけ読んでも、棚に残せるのはこれだけ。何を手元に置くかが、次の周の入り口になる。
+      </p>
+      <p className="lead soft">選んだ {sel.size} / {CARRY_MAX} 冊</p>
+
+      {empty && <p className="lead soft">持ち越せる本がない。</p>}
+
+      {[...byWho.entries()].map(([who, ids]) => (
+        <div className="shelfgroup" key={who}>
+          <div className="name">{CAST[who].name}が読んだ</div>
+          <div className="cards">
+            {ids.map((id) => {
+              const b = LIBRARY.get(id)!;
+              const on = sel.has(id);
+              const full = !on && sel.size >= CARRY_MAX;
+              return (
+                <button key={id}
+                  className={`card d-${SHELVES[b.shelf].division} q${b.power}${on ? ' on' : ''}`}
+                  onClick={() => toggle(id)} disabled={full}>
+                  <span className="lamp" />
+                  <div className="title">{b.title}</div>
+                  <div className="meta">
+                    {SHELVES[b.shelf].label} ／ 威力{b.power}
+                  </div>
+                  <div className="themes">
+                    {b.themes.map((t) => <span key={t} className="th">{THEMES[t].label}</span>)}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+
+      <div className="eend">
+        <button className="go" onClick={finish}>
+          {empty ? '店へ戻る' : `この${sel.size}冊で店へ戻る`}
+        </button>
+      </div>
     </div>
   );
 }

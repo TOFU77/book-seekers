@@ -15,6 +15,7 @@
   --shinri: #8a5a4a;
   --ghost: #d3a48c;
   --accent: #b4562f;
+  --gilt: #b8912f;
 }
 
 * { box-sizing: border-box; }
@@ -32,6 +33,11 @@ body {
 }
 
 button { font-family: inherit; color: inherit; }
+
+/* ゴシック体を選べる。細い明朝が読みにくいときに。 */
+.app.gothic {
+  font-family: "Yu Gothic", "YuGothic", "Hiragino Kaku Gothic ProN", "Meiryo", system-ui, sans-serif;
+}
 
 /* ══ 全体は上下二分割 ══ */
 .app { display: flex; flex-direction: column; height: 100%; }
@@ -122,15 +128,32 @@ h2.sec {
   padding: 5px 8px 5px 20px;
   cursor: pointer; text-align: left; font-size: 13px; line-height: 1.4;
   min-width: 150px; max-width: 230px; flex: 1 1 150px;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
 }
 .card:disabled { cursor: default; }
+
+/* 確度／威力 1〜3 を、縁取りの豪華さでも示す。記載はそのまま残る。 */
+.card.q2::after, .card.q3::after {
+  content: ''; position: absolute; inset: 2px; pointer-events: none;
+}
+.card.q2::after { border: 1px solid var(--rule); }
+.card.q3::after {
+  inset: 2px; border: 1px double var(--gilt);
+  box-shadow: inset 0 0 0 3px rgba(184, 145, 47, 0.10);
+}
 /* ランプ — 選択中を灯で示す */
 .card .lamp {
   position: absolute; left: 7px; top: 9px;
   width: 7px; height: 7px; border-radius: 50%;
   border: 1px solid var(--rule); background: transparent;
 }
-.card.on { border-color: var(--ink); background: #fff; }
+/* 選ぶと、場に出す前のように左上へ浮く。右下に影が落ちる。 */
+.card.on {
+  border-color: var(--ink); background: #fff;
+  transform: translate(-3px, -3px);
+  box-shadow: 5px 5px 0 rgba(42, 39, 35, 0.16);
+  z-index: 2;
+}
 .card.on .lamp { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 4px var(--accent); }
 .card .title { font-weight: 600; }
 .card .meta { font-size: 11px; color: var(--ink-soft); }
@@ -188,7 +211,12 @@ h2.sec {
 .overlay .panel.finale { max-width: 720px; }
 .panel.finale .said { padding: 20px 24px; }
 .panel.finale .said .name { font-size: 15px; color: var(--ink); font-weight: 600; letter-spacing: 0.1em; }
-.panel.finale .mono { margin: 10px 0 0; font-size: 14px; line-height: 1.9; }
+/* 組ごとの区切りは広く、組の中の詳細行は詰めて読ませる。 */
+.panel.finale .mono { margin: 12px 0 0; font-size: 14px; line-height: 1.7; }
+.panel.finale .mono.sub {
+  margin: 1px 0 0; padding-left: 14px;
+  font-size: 13px; line-height: 1.45; color: var(--ink-soft);
+}
 .panel.finale blockquote.epi { margin-bottom: 12px; }
 
 @media (max-width: 720px) {
@@ -308,3 +336,54 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 
 .verdict { margin-top: 8px; padding: 8px 12px; border: 2px solid var(--ink); background: #fff; font-size: 14px; }
 .verdict.lose { border-color: var(--accent); }
+
+/* ══ 問答パート — 容疑者・手帳・書架の三フレーム ══ */
+.app.play .arena {
+  flex: 1 1 auto; min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(300px, 1.05fr) 300px minmax(320px, 1.3fr);
+}
+.play .frame {
+  min-height: 0; overflow-y: auto;
+  padding: 12px 16px; border-right: 1px solid var(--rule);
+}
+.play .frame:last-child { border-right: none; }
+.play .frame.board { border-right: 2px solid var(--ink); }
+.play .frame.board .bar { border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 4px; }
+
+/* 手帳も書架も、フレームの中では一枚ずつ縦に積む。 */
+.play .frame .cards { flex-direction: column; flex-wrap: nowrap; }
+.play .frame .card { width: 100%; max-width: none; flex: 0 0 auto; }
+.play .frame .records { margin-top: 12px; }
+.act .read .soft { color: var(--ink-soft); }
+
+/* 画面が狭いとき、またはスマホ表示のときは縦に積んで全体スクロール。 */
+.app.narrow.play .arena { display: block; overflow-y: auto; }
+.app.narrow.play .frame {
+  overflow: visible; border-right: none;
+  border-bottom: 1px solid var(--rule);
+}
+@media (max-width: 900px) {
+  .app.play .arena { display: block; overflow-y: auto; }
+  .app.play .frame {
+    overflow: visible; border-right: none;
+    border-bottom: 1px solid var(--rule);
+  }
+}
+
+/* ══ 突きつけの確認 ══ */
+.overlay .panel.ask {
+  display: block; max-width: 420px; text-align: center;
+}
+.panel.ask .said { padding: 20px 24px; }
+.panel.ask .name { font-size: 13px; color: var(--ink-soft); }
+.panel.ask .big { font-size: 34px; font-weight: 600; margin: 2px 0 8px; }
+.panel.ask .line { font-size: 13px; }
+.panel.ask .line.soft { color: var(--ink-soft); font-size: 12px; }
+.panel.ask .askrow { display: flex; gap: 12px; justify-content: center; margin: 16px 0 4px; }
+.panel.ask .tap { margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
+
+/* ══ 持ち越し選択 ══ */
+.carry { max-width: 68ch; }
+.carry .it { font-size: 24px; margin: 0 0 4px; letter-spacing: 0.12em; }
+.carry .cards { display: flex; flex-wrap: wrap; gap: 6px; }

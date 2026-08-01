@@ -98,8 +98,12 @@ export default function Investigation({
     // その日の報告は、出向いた者のうち一人が口にする
     const speaker = dispatches[0]?.pair[0] ?? keeper ?? CAST_IDS[0]!;
     onAdvance(next, next.log.slice(before), speaker);
-    setSlots(Object.fromEntries(CAST_IDS.map((c) => [c, null])) as Record<CharacterId, Slot>);
-    setWhere([null, null]);
+    // 采配は前日のまま保持する。変えたいときだけ押せばいい。
+    // ただし口を閉ざした場所は行き先から外す。読んだ本は消費したので選び直す。
+    setWhere((w) => [
+      w[0] && isOpen(next, w[0]) ? w[0] : null,
+      w[1] && isOpen(next, w[1]) ? w[1] : null,
+    ]);
     setReadBook(null);
   }
 
