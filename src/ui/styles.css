@@ -337,18 +337,24 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 .verdict { margin-top: 8px; padding: 8px 12px; border: 2px solid var(--ink); background: #fff; font-size: 14px; }
 .verdict.lose { border-color: var(--accent); }
 
-/* ══ 問答パート — 容疑者・手帳・書架の三フレーム ══ */
+/* ══ 問答パート — 容疑者は上、手帳は左下、書架は右下の三フレーム ══ */
 .app.play .arena {
   flex: 1 1 auto; min-height: 0;
   display: grid;
-  grid-template-columns: minmax(300px, 1.05fr) 300px minmax(320px, 1.3fr);
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 .play .frame {
   min-height: 0; overflow-y: auto;
   padding: 12px 16px; border-right: 1px solid var(--rule);
 }
 .play .frame:last-child { border-right: none; }
-.play .frame.board { border-right: 2px solid var(--ink); }
+.play .frame.board {
+  grid-column: 1 / -1; grid-row: 1;
+  max-height: 46vh; border-right: none; border-bottom: 2px solid var(--ink);
+}
+.play .frame.notes { grid-column: 1; grid-row: 2; }
+.play .frame.shelves { grid-column: 2; grid-row: 2; }
 .play .frame.board .bar { border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 4px; }
 
 /* 手帳も書架も、フレームの中では一枚ずつ縦に積む。 */
@@ -361,27 +367,15 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 .app.narrow.play .arena { display: block; overflow-y: auto; }
 .app.narrow.play .frame {
   overflow: visible; border-right: none;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule); max-height: none;
 }
 @media (max-width: 900px) {
   .app.play .arena { display: block; overflow-y: auto; }
   .app.play .frame {
     overflow: visible; border-right: none;
-    border-bottom: 1px solid var(--rule);
+    border-bottom: 1px solid var(--rule); max-height: none;
   }
 }
-
-/* ══ 突きつけの確認 ══ */
-.overlay .panel.ask {
-  display: block; max-width: 420px; text-align: center;
-}
-.panel.ask .said { padding: 20px 24px; }
-.panel.ask .name { font-size: 13px; color: var(--ink-soft); }
-.panel.ask .big { font-size: 34px; font-weight: 600; margin: 2px 0 8px; }
-.panel.ask .line { font-size: 13px; }
-.panel.ask .line.soft { color: var(--ink-soft); font-size: 12px; }
-.panel.ask .askrow { display: flex; gap: 12px; justify-content: center; margin: 16px 0 4px; }
-.panel.ask .tap { margin-top: 10px; font-size: 11px; color: var(--ink-soft); }
 
 /* ══ 持ち越し選択 ══ */
 .carry { max-width: 68ch; }

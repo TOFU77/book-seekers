@@ -81,8 +81,6 @@ export default function App() {
   const [pickedNote, setPickedNote] = useState<string | null>(null);
   const [pickedBooks, setPickedBooks] = useState<string[]>([]);
   const [flash, setFlash] = useState<Flash | null>(null);
-  const [peek, setPeek] = useState(false);
-  const [confirm, setConfirm] = useState(false);
 
   const theCase = CASES[caseIdx]!;
   const layer = theCase.layers[Math.min(layerIdx, theCase.layers.length - 1)]!;
@@ -104,7 +102,6 @@ export default function App() {
     setInv(newInvestigation(l, `${theCase.id}-${depthIdx}-${seed}`, carried));
     setSession(null); setDayReport(null);
     setPickedNote(null); setPickedBooks([]); setFlash(null); setTarget('shinri');
-    setPeek(false); setConfirm(false);
   }
 
   function toTitle() {
@@ -247,7 +244,6 @@ export default function App() {
   const pending = result?.ok ? result.damage : 0;
   const over = isWon(debate) || debate.turnsLeft <= 0;
   const wall = (k: WallKind) => (k === 'ronri' ? layer.logical : layer.psych);
-  const showPred = narrow || peek;
 
   const byShelf = (() => {
     const m = new Map<ShelfId, BookTag[]>();
@@ -269,14 +265,8 @@ export default function App() {
     setSession((s) => (s ? { ...s, debate: next.state } : s));
     setFlash({ result: next.result, speaker: speakerFor(chosenBooks), target, before, after: next.state.remaining[target] });
     setPickedNote(null); setPickedBooks([]);
-    setConfirm(false); setPeek(false);
     const other: WallKind = target === 'ronri' ? 'shinri' : 'ronri';
     if (next.state.remaining[target] <= 0 && next.state.remaining[other] > 0) setTarget(other);
-  }
-  function onThrust() {
-    if (!result?.ok) return;
-    if (narrow) commit();
-    else setConfirm(true);
   }
   function toEpilogue() {
     const ids: string[] = [];
@@ -284,21 +274,6 @@ export default function App() {
     setArchive(addToArchive(ids));
     veil('エピローグへ', () => setScene('epilogue'));
   }
-
-  const predBody = (
-    <>
-      {result && !result.ok && <span className="bad">{result.reason}</span>}
-      {result?.ok && (
-        <>
-          <span className="dmg">−{result.damage}</span>
-          {COMBO_LABEL[result.breakdown.kind]}
-          {result.breakdown.sharedThemes.length > 0 &&
-            ` ／ 共有主題: ${result.breakdown.sharedThemes.map((t) => THEMES[t].label).join('・')}`}
-          {result.breakdown.notes.map((n, i) => <div key={i}>・{n}</div>)}
-        </>
-      )}
-    </>
-  );
 
   return (
     <div className={`${appClass} play`}>
@@ -331,12 +306,12 @@ export default function App() {
                   <div className="label">
                     <span>{k === 'ronri' ? '論理の壁' : '心理の壁'}</span>
                     <span className="num">
-                      {done ? '崩れた' : <>{cur}{showPred && drop > 0 && <span className="drop"> → {Math.round((cur - drop) * 10) / 10}</span>} / {w.hardness}</>}
+                      {done ? '崩れた' : <>{cur}{drop > 0 && <span className="drop"> → {Math.round((cur - drop) * 10) / 10}</span>} / {w.hardness}</>}
                     </span>
                   </div>
                   <div className="gauge">
-                    {showPred && <i className="pre" style={{ width: `${Math.max(0, (cur / w.hardness) * 100)}%` }} />}
-                    <i className="cur" style={{ width: `${Math.max(0, ((cur - (showPred ? drop : 0)) / w.hardness) * 100)}%` }} />
+                    <i className="pre" style={{ width: `${Math.max(0, (cur / w.hardness) * 100)}%` }} />
+                    <i className="cur" style={{ width: `${Math.max(0, ((cur - drop) / w.hardness) * 100)}%` }} />
                   </div>
                   <div className="known">
                     {known.length > 0 ? `急所: ${known.map((t) => THEMES[t].label).join('・')}` : '急所はまだ見えない'}
@@ -349,16 +324,20 @@ export default function App() {
           <div className="act">
             <div className="read">
               {!argument && <>手帳を1つと、書架から1〜3冊を選ぶ。</>}
-              {argument && !showPred && <span className="soft">「突きつける」に触れると、効き目が見える。</span>}
-              {argument && showPred && predBody}
+              {result && !result.ok && <span className="bad">{result.reason}</span>}
+              {result?.ok && (
+                <>
+                  <span className="dmg">−{result.damage}</span>
+                  {COMBO_LABEL[result.breakdown.kind]}
+                  {result.breakdown.sharedThemes.length > 0 &&
+                    ` ／ 共有主題: ${result.breakdown.sharedThemes.map((t) => THEMES[t].label).join('・')}`}
+                  {result.breakdown.notes.map((n, i) => <div key={i}>・{n}</div>)}
+                </>
+              )}
             </div>
             {over
               ? <button className="go" onClick={toEpilogue}>結末を見る</button>
-              : <button className="go thrust" onClick={onThrust} disabled={!result?.ok}
-                  onMouseEnter={() => setPeek(true)} onMouseLeave={() => setPeek(false)}
-                  onFocus={() => setPeek(true)} onBlur={() => setPeek(false)}>
-                  突きつける
-                </button>}
+              : <button className="go" onClick={commit} disabled={!result?.ok}>突きつける</button>}
           </div>
 
           <div className="records">
@@ -424,28 +403,6 @@ export default function App() {
           ))}
         </div>
       </div>
-
-      {confirm && result?.ok && (
-        <div className="overlay" onClick={() => setConfirm(false)}>
-          <div className="panel ask" onClick={(e) => e.stopPropagation()}>
-            <div className="said">
-              <div className="name">{target === 'ronri' ? '論理の壁' : '心理の壁'}に</div>
-              <div className="big">−{result.damage}</div>
-              <div className="line">
-                {COMBO_LABEL[result.breakdown.kind]}
-                {result.breakdown.sharedThemes.length > 0 &&
-                  ` ／ 共有主題: ${result.breakdown.sharedThemes.map((t) => THEMES[t].label).join('・')}`}
-              </div>
-              {result.breakdown.notes.map((n, i) => <div className="line soft" key={i}>・{n}</div>)}
-              <div className="askrow">
-                <button className="go" onClick={commit}>突きつける</button>
-                <button className="go ghosty" onClick={() => setConfirm(false)}>まだ</button>
-              </div>
-              <div className="tap">「まだ」で戻っても、選び直しに罰はない。</div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {flash && (
         <div className="overlay" onClick={() => setFlash(null)}>
