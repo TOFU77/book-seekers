@@ -54,7 +54,8 @@ export const SEIBO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 20,
-        weakThemes: ['kiroku', 'kokan'],
+        // 摩擦点: 境界と逸脱(会社宛と自宅宛、どこに線が引かれたか)
+        weakThemes: ['kyokai', 'kiroku'],
         resistantShelves: ['gigei'],
       },
       psych: {
@@ -114,7 +115,8 @@ export const SEIBO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 35,
-        weakThemes: ['kiroku', 'dairi'],
+        // 摩擦点: 代理と信任(発注は誰の利益のための采配か)
+        weakThemes: ['dairi', 'kiroku'],
         resistantShelves: ['kanjo', 'gigei'],
       },
       psych: {

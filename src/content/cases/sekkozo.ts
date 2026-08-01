@@ -54,7 +54,8 @@ export const SEKKOZO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 20,
-        weakThemes: ['kiroku', 'kajo'],
+        // 摩擦点: 過剰と欠乏(足りないから取るのか、有り余るから引き取るのか)
+        weakThemes: ['kajo', 'kiroku'],
         resistantShelves: ['gigei'],
       },
       psych: {

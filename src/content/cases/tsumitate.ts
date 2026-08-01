@@ -55,14 +55,15 @@ export const TSUMITATE: Case = {
       logical: {
         kind: 'ronri',
         hardness: 22,
-        weakThemes: ['kiroku', 'kajo'],
+        // 摩擦点: 過剰と欠乏(集めすぎた金の使い道)
+        weakThemes: ['kajo', 'kiroku'],
         resistantShelves: ['tochi'],
       },
       psych: {
         kind: 'shinri',
         hardness: 32,
-        // 「昔から続いてきた」という継承の物語。記録の話が刺さる。
-        weakThemes: ['kiroku', 'keisho'],
+        // 「昔から続いてきた」という継承の物語。継承と断絶が急所。
+        weakThemes: ['keisho', 'kiroku'],
         // 土地の慣習を持ち出されると、民俗学はむしろ相手の武器になる
         resistantShelves: ['tochi', 'seken'],
       },
@@ -118,7 +119,8 @@ export const TSUMITATE: Case = {
       logical: {
         kind: 'ronri',
         hardness: 32,
-        weakThemes: ['kiroku', 'dairi'],
+        // 摩擦点: 代理と信任(積立を一人で采配する正当性)
+        weakThemes: ['dairi', 'kiroku'],
         resistantShelves: ['suji', 'tochi'],
       },
       psych: {

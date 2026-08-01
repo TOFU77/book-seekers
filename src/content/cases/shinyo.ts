@@ -54,7 +54,8 @@ export const SHINYO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 22,
-        weakThemes: ['kiroku', 'bunrui'],
+        // 摩擦点: 分類と名づけ(担保と粉飾の線引き)
+        weakThemes: ['bunrui', 'kiroku'],
         resistantShelves: ['kanjo'],
       },
       psych: {
@@ -113,7 +114,8 @@ export const SHINYO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 35,
-        weakThemes: ['kiroku', 'dairi'],
+        // 摩擦点: 代理と信任(預金者の金を誰の裁量で動かしたか)
+        weakThemes: ['dairi', 'kiroku'],
         resistantShelves: ['kanjo', 'suji'],
       },
       psych: {
@@ -173,7 +175,8 @@ export const SHINYO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 55,
-        weakThemes: ['kiroku', 'kokuhaku'],
+        // 摩擦点: 沈黙と告白(誰も口にしなかった含み損)
+        weakThemes: ['kokuhaku', 'kiroku'],
         resistantShelves: ['kanjo', 'suji', 'riho'],
       },
       psych: {

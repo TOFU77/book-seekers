@@ -54,7 +54,8 @@ export const KOHO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 20,
-        weakThemes: ['kiroku', 'shisen'],
+        // 摩擦点: 見ることと見られること(一枚の像は何を見せ、何を隠すか)
+        weakThemes: ['shisen', 'kiroku'],
         resistantShelves: ['shumi'],
       },
       psych: {
@@ -114,7 +115,8 @@ export const KOHO: Case = {
       logical: {
         kind: 'ronri',
         hardness: 33,
-        weakThemes: ['kiroku', 'kokuhaku'],
+        // 摩擦点: 沈黙と告白(写さなかった一枚が語ること)
+        weakThemes: ['kokuhaku', 'kiroku'],
         resistantShelves: ['shumi', 'busshou'],
       },
       psych: {
