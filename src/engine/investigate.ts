@@ -90,9 +90,9 @@ export interface InvestigationState {
 
 /** 一日の采配。 */
 export interface DayPlan {
-  /** 派遣するペアと行き先。同じ人物を二度使うことはできない。 */
-  dispatches: Array<{ pair: [CharacterId, CharacterId]; location: string }>;
-  /** 店に残って積読を崩す者と、その一冊。 */
+  /** 派遣する組(1〜2名)と行き先。同じ人物を二度使うことはできない。 */
+  dispatches: Array<{ members: CharacterId[]; location: string }>;
+  /** 店に残って積読を崩す者と、その一冊。店番は複数いてよいが、崩せるのは一冊。 */
   reader?: { who: CharacterId; book: string };
 }
 
@@ -128,10 +128,10 @@ export function remainingYields(state: InvestigationState, loc: Location): Noteb
     .filter((n): n is NotebookTag => n !== undefined);
 }
 
-/** 一組の派遣が持ち帰るものを見積もる。 */
+/** 一組(1〜2名)の派遣が持ち帰るものを見積もる。 */
 export function dispatchYield(
   state: InvestigationState,
-  pair: [CharacterId, CharacterId],
+  members: CharacterId[],
   loc: Location,
   rng: Rng,
 ): {
@@ -141,28 +141,30 @@ export function dispatchYield(
   feel: Feel;
   notes: string[];
 } {
-  const [a, b] = pair;
-  const chem = pairChemistry(a, b);
-  const ta = CAST[a].temperament;
-  const tb = CAST[b].temperament;
+  const temps = members.map((m) => CAST[m].temperament);
+  // 二人組のときだけ化学反応が起きる。一人では網が狭い。
+  const chem = members.length === 2 ? pairChemistry(members[0]!, members[1]!) : null;
   const notes: string[] = [];
   const T = INVESTIGATION_TUNING;
 
   // ── 何冊ぶん持ち帰れるか ──
   let count = 1;
-  if (chem.friction >= 3) {
+  if (chem && chem.friction >= 3) {
     count += 1;
     notes.push('噛み合わないぶん、拾う網が広かった');
   }
-  if (chem.bringsFoundation) {
+  if (chem && chem.bringsFoundation) {
     count += 1;
     notes.push('片方が書き物を、片方が人を当たった');
   }
-  const push = [ta, tb].filter((t) => t.approach < 0).length;
-  const hold = [ta, tb].filter((t) => t.approach > 0).length;
+  const push = temps.filter((t) => t.approach < 0).length;
+  const hold = temps.filter((t) => t.approach > 0).length;
   if (push >= 1) {
     count += 1;
     notes.push('踏み込んで、早く引き出した');
+  }
+  if (members.length === 1) {
+    notes.push('一人では、拾える網はどうしても狭い');
   }
   count -= (state.visits[loc.id] ?? 0) * T.revisitPenalty;
 
@@ -178,7 +180,7 @@ export function dispatchYield(
   count = Math.max(0, count);
 
   // ── 確度 ──
-  const deepen = chem.resonance >= 3 ? 1 : 0;
+  const deepen = chem && chem.resonance >= 3 ? 1 : 0;
   if (deepen) notes.push('二人の見方が揃って、深いところまで聞けた');
 
   const available = remainingYields(state, loc);
@@ -188,7 +190,7 @@ export function dispatchYield(
 
   // ── 人物の理解 ──
   // 空振りでも、人となりだけは見えることがある。
-  const sense = [ta, tb].filter((t) => t.grasp > 0).length;
+  const sense = temps.filter((t) => t.grasp > 0).length;
   const insight = loc.insight > 0 ? loc.insight + sense : 0;
   if (sense >= 1 && loc.insight > 0) notes.push('相手の様子から、人となりが見えた');
 
@@ -245,23 +247,24 @@ export function runDay(state: InvestigationState, plan: DayPlan, rng: Rng): Inve
 
   const used = new Set<CharacterId>();
 
-  for (const { pair, location } of plan.dispatches) {
+  for (const { members, location } of plan.dispatches) {
     const loc = state.layer.locations.find((l) => l.id === location);
     if (!loc) continue;
-    if (pair.some((p) => used.has(p))) continue;
+    if (members.length === 0) continue;
+    if (members.some((p) => used.has(p))) continue;
     if (!isOpen(state, location)) {
       log.push(`${loc.label} — もう口を開いてもらえない`);
       continue;
     }
-    pair.forEach((p) => used.add(p));
+    members.forEach((p) => used.add(p));
 
-    const y = dispatchYield({ ...state, notebook, guard, visits }, pair, loc, rng);
+    const y = dispatchYield({ ...state, notebook, guard, visits }, members, loc, rng);
     notebook.push(...y.tags);
     insight += y.insight;
     guard[location] = (guard[location] ?? 0) + y.guard;
     visits[location] = (visits[location] ?? 0) + 1;
 
-    const who = `${CAST[pair[0]].name}と${CAST[pair[1]].name}`;
+    const who = members.map((p) => CAST[p].name).join('と');
     log.push(
       y.tags.length > 0
         ? `${who} → ${loc.label}: ${y.tags.map((t) => t.label).join('、')}`

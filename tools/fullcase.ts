@@ -129,8 +129,8 @@ const POLICIES: InvestPolicy[] = [
       if (open.length === 0) return { dispatches: [] };
       return {
         dispatches: [
-          { pair: [order[0]!, order[1]!], location: rng.pick(open).id },
-          { pair: [order[2]!, order[3]!], location: rng.pick(open).id },
+          { members: [order[0]!, order[1]!], location: rng.pick(open).id },
+          { members: [order[2]!, order[3]!], location: rng.pick(open).id },
         ],
         reader: { who: order[4]!, book: unreadFor(state, order[4]!, []) ?? '' },
       };
@@ -145,8 +145,8 @@ const POLICIES: InvestPolicy[] = [
       const spot2 = bestRecordSpot(state) ?? spot;
       return {
         dispatches: [
-          { pair: [order[0]!, order[1]!], location: spot.id },
-          { pair: [order[2]!, order[3]!], location: spot2.id },
+          { members: [order[0]!, order[1]!], location: spot.id },
+          { members: [order[2]!, order[3]!], location: spot2.id },
         ],
         reader: { who: order[4]!, book: unreadFor(state, order[4]!, []) ?? '' },
       };
@@ -160,8 +160,8 @@ const POLICIES: InvestPolicy[] = [
       const spot = bestPeopleSpot(state) ?? state.layer.locations[0]!;
       return {
         dispatches: [
-          { pair: [order[0]!, order[1]!], location: spot.id },
-          { pair: [order[2]!, order[3]!], location: spot.id },
+          { members: [order[0]!, order[1]!], location: spot.id },
+          { members: [order[2]!, order[3]!], location: spot.id },
         ],
         reader: { who: order[4]!, book: unreadFor(state, order[4]!, []) ?? '' },
       };
@@ -181,8 +181,8 @@ const POLICIES: InvestPolicy[] = [
       const record = bestRecordSpot(state);
       const people = bestPeopleSpot(state);
       const dispatches: DayPlan['dispatches'] = [];
-      if (record) dispatches.push({ pair: pairA, location: record.id });
-      if (people) dispatches.push({ pair: pairB, location: people.id });
+      if (record) dispatches.push({ members: pairA, location: record.id });
+      if (people) dispatches.push({ members: pairB, location: people.id });
 
       // 座談で急所が判明していれば、その主題の本を読む
       const book = unreadFor(state, reader, state.knownWeak);

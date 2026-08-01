@@ -255,6 +255,16 @@ h2.sec {
 .casecard .ct { font-size: 15px; font-weight: 600; }
 .casecard .cd { font-size: 12px; color: var(--ink-soft); margin: 3px 0; }
 .casecard .cl { font-size: 11px; color: var(--accent); }
+.casecard.locked {
+  opacity: 0.5; cursor: not-allowed; border-left-color: var(--rule);
+  background: var(--paper-deep);
+}
+.casecard.locked:hover { border-left-color: var(--rule); background: var(--paper-deep); }
+.casecard.locked .cd { font-style: italic; }
+
+/* 諦める — 目立たせすぎない退避口 */
+button.ghost.giveup { color: var(--accent); border-color: var(--ghost); }
+.istatus button.ghost.giveup { margin-left: auto; }
 
 .archive { font-size: 12px; }
 .arow { padding: 3px 0; border-bottom: 1px dotted var(--rule); }
@@ -311,8 +321,9 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 .member.s0, .member.s1 { border-color: var(--ink); background: #fff; }
 .member.s0 .badge { background: var(--shelf-ii); color: #fff; border-color: var(--shelf-ii); }
 .member.s1 .badge { background: var(--shelf-iii); color: #fff; border-color: var(--shelf-iii); }
-.member.s2 { border-color: var(--ink); background: #fff; }
-.member.s2 .badge { background: var(--shelf-i); color: #fff; border-color: var(--shelf-i); }
+/* 店番は初期値。目立たせず、地の色で置く */
+.member.skeeper { border-color: var(--rule); background: var(--card); }
+.member.skeeper .badge { background: var(--paper-deep); color: var(--ink-soft); border-color: var(--rule); }
 
 .teams { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .app.narrow .teams { grid-template-columns: 1fr; }
@@ -381,3 +392,21 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 .carry { max-width: 68ch; }
 .carry .it { font-size: 24px; margin: 0 0 4px; letter-spacing: 0.12em; }
 .carry .cards { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* ══ 解決の履歴 ══ */
+.history { max-width: 68ch; }
+.history .tbar { display: flex; align-items: baseline; gap: 12px; border-bottom: 2px solid var(--ink); padding-bottom: 8px; }
+.history .tbar h1 { margin: 0; font-size: 22px; letter-spacing: 0.18em; }
+.history .tbar .ghost { margin-left: auto; }
+.hlist { margin: 14px 0; }
+.hrow { border-bottom: 1px dotted var(--rule); padding: 10px 0; }
+.hrow .ht { font-size: 15px; font-weight: 600; }
+.hrow .ht .hlayer { font-size: 11px; color: var(--accent); margin-left: 8px; font-weight: 400; }
+.hrow .hmeta { font-size: 13px; color: var(--ink); margin: 3px 0; }
+.hrow .hread { font-size: 12px; color: var(--ink-soft); line-height: 1.6; }
+
+/* ══ エンディング ══ */
+.ending { max-width: 60ch; }
+.ending .et { font-size: 24px; letter-spacing: 0.18em; margin: 0 0 8px; }
+.ending .emono p { font-size: 14px; line-height: 2; margin: 12px 0 0; }
+.ending .emono .esoft { color: var(--ink-soft); border-top: 1px solid var(--rule); padding-top: 12px; margin-top: 18px; }

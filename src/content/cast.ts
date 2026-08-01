@@ -33,7 +33,7 @@ export const CAST: Record<CharacterId, Character> = {
     ],
     speech: '「……いや、それはね。そういう話ではないんですよ」',
     temperament: { source: -2, grasp: -1, approach: 1, resolve: -1 },
-    goodShelves: ['henshu', 'raireki', 'kotoba'],
+    goodShelves: ['monogatari', 'tochi', 'henshu', 'raireki', 'kotoba'],
     weakShelf: 'gigei',
   },
 
@@ -61,7 +61,7 @@ export const CAST: Record<CharacterId, Character> = {
     ],
     speech: '「あの……たぶん、違うと思うんですけど、たぶんです」',
     temperament: { source: -1, grasp: 2, approach: 2, resolve: 2 },
-    goodShelves: ['monogatari', 'chinmoku', 'jinshin'],
+    goodShelves: ['monogatari', 'chinmoku', 'jinshin', 'busshou' ],
     weakShelf: 'kanjo',
   },
 
@@ -89,7 +89,7 @@ export const CAST: Record<CharacterId, Character> = {
     ],
     speech: '「で、それ誰が実際にやったんだ。名前は」',
     temperament: { source: 1, grasp: -2, approach: -2, resolve: -2 },
-    goodShelves: ['gigei', 'busshou', 'suji'],
+    goodShelves: ['gigei', 'busshou', 'suji', 'shumi' ],
     weakShelf: 'monogatari',
   },
 
@@ -117,7 +117,7 @@ export const CAST: Record<CharacterId, Character> = {
     ],
     speech: '「うん、まあ……それ、私の口からは言えないやつなんだけどね」',
     temperament: { source: 2, grasp: -1, approach: -1, resolve: 1 },
-    goodShelves: ['kanjo', 'seken', 'riho'],
+    goodShelves: ['kanjo', 'seken', 'riho', 'suji'],
     weakShelf: 'chinmoku',
   },
 
@@ -146,7 +146,7 @@ export const CAST: Record<CharacterId, Character> = {
     speech: '「あの人、去年の秋から笑い方が変わってるよ。写真見ればわかる」',
     // 軸4が0(中庸)。深掘り分岐の事実上のキャスティングボート。
     temperament: { source: 1, grasp: 1, approach: 1, resolve: 0 },
-    goodShelves: ['shumi', 'tochi', 'jinshin'],
+    goodShelves: ['shumi', 'tochi', 'jinshin', 'gigei'],
     weakShelf: 'riho',
   },
 };

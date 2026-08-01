@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import type { CharacterId, Layer } from '../types.js';
+import type { BookTag, CharacterId, Layer } from '../types.js';
 import { CAST, CAST_IDS, pairChemistry, AXIS_LABELS } from '../content/cast.js';
 import { SHELVES } from '../content/shelves.js';
 import { THEMES } from '../content/themes.js';
@@ -16,7 +16,8 @@ const LOC_KIND: Record<string, string> = {
   kiroku: '記録', hito: '人', genba: '現場', honnin: '本人',
 };
 
-type Slot = 0 | 1 | 2 | null; // 0=一組目 1=二組目 2=店番
+// 0=一組目 1=二組目 'keeper'=店番(初期値)。未選択の者は店番になる。
+type Slot = 0 | 1 | 'keeper';
 
 /** その人の気質を一行で。誰を組ませるかの判断材料になる。 */
 function traits(who: CharacterId): string {
@@ -36,67 +37,80 @@ export default function Investigation({
   seed,
   onAdvance,
   onFinish,
+  onGiveUp,
 }: {
   layer: Layer;
   state: InvestigationState;
   seed: string;
   onAdvance: (next: InvestigationState, dayLog: string[], speaker: CharacterId) => void;
   onFinish: () => void;
+  onGiveUp: () => void;
 }) {
   const [slots, setSlots] = useState<Record<CharacterId, Slot>>(
-    () => Object.fromEntries(CAST_IDS.map((c) => [c, null])) as Record<CharacterId, Slot>,
+    () => Object.fromEntries(CAST_IDS.map((c) => [c, 'keeper'])) as Record<CharacterId, Slot>,
   );
   const [where, setWhere] = useState<[string | null, string | null]>([null, null]);
   const [readBook, setReadBook] = useState<string | null>(null);
 
   const dayNo = layer.days - state.daysLeft + 1;
   const inSlot = (s: Slot) => CAST_IDS.filter((c) => slots[c] === s);
-  const pairA = inSlot(0);
-  const pairB = inSlot(1);
-  const keeper = inSlot(2)[0];
+  const teamA = inSlot(0);
+  const teamB = inSlot(1);
+  const keepers = inSlot('keeper');
 
   const open = layer.locations.filter((l) => isOpen(state, l.id));
 
   function cycle(who: CharacterId) {
     setSlots((prev) => {
+      const order: Slot[] = ['keeper', 0, 1];
       const cur = prev[who];
-      const order: Slot[] = [0, 1, 2, null];
       let next: Slot = order[(order.indexOf(cur) + 1) % order.length]!;
-      // 定員: 組は2人まで、店番は1人まで
-      for (let i = 0; i < 4; i++) {
+      // 組は2人まで。埋まっていたら次の状態へ送る。店番に定員は無い。
+      for (let i = 0; i < 3; i++) {
         const count = CAST_IDS.filter((c) => c !== who && prev[c] === next).length;
-        const cap = next === 2 ? 1 : next === null ? 99 : 2;
-        if (count < cap) break;
+        if (next === 'keeper' || count < 2) break;
         next = order[(order.indexOf(next) + 1) % order.length]!;
       }
       return { ...prev, [who]: next };
     });
   }
 
-  const candidates = useMemo(
-    () => (keeper ? unreadBooksFor(state, keeper) : []),
-    [state, keeper],
-  );
+  // 店番全員の「まだ読める本」の和集合。誰が読むかも控えておく。
+  const { candidateBooks, readerByBook } = useMemo(() => {
+    const readerByBook = new Map<string, CharacterId>();
+    const candidateBooks: BookTag[] = [];
+    for (const k of keepers) {
+      for (const b of unreadBooksFor(state, k)) {
+        if (!readerByBook.has(b.id)) {
+          readerByBook.set(b.id, k);
+          candidateBooks.push(b);
+        }
+      }
+    }
+    return { candidateBooks, readerByBook };
+  }, [state, keepers.join(',')]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reader = readBook && readerByBook.has(readBook)
+    ? { who: readerByBook.get(readBook)!, book: readBook }
+    : null;
 
   const canGo =
-    (pairA.length === 2 && where[0]) || (pairB.length === 2 && where[1]) || Boolean(keeper && readBook);
+    Boolean(teamA.length && where[0]) ||
+    Boolean(teamB.length && where[1]) ||
+    Boolean(reader);
 
   function endDay() {
     const dispatches: DayPlan['dispatches'] = [];
-    if (pairA.length === 2 && where[0]) {
-      dispatches.push({ pair: [pairA[0]!, pairA[1]!], location: where[0] });
-    }
-    if (pairB.length === 2 && where[1]) {
-      dispatches.push({ pair: [pairB[0]!, pairB[1]!], location: where[1] });
-    }
+    if (teamA.length && where[0]) dispatches.push({ members: teamA, location: where[0] });
+    if (teamB.length && where[1]) dispatches.push({ members: teamB, location: where[1] });
     const plan: DayPlan = {
       dispatches,
-      ...(keeper && readBook ? { reader: { who: keeper, book: readBook } } : {}),
+      ...(reader ? { reader } : {}),
     };
     const before = state.log.length;
     const next = runDay(state, plan, dayRng(seed, dayNo));
     // その日の報告は、出向いた者のうち一人が口にする
-    const speaker = dispatches[0]?.pair[0] ?? keeper ?? CAST_IDS[0]!;
+    const speaker = dispatches[0]?.members[0] ?? reader?.who ?? CAST_IDS[0]!;
     onAdvance(next, next.log.slice(before), speaker);
     // 采配は前日のまま保持する。変えたいときだけ押せばいい。
     // ただし口を閉ざした場所は行き先から外す。読んだ本は消費したので選び直す。
@@ -121,6 +135,7 @@ export default function Investigation({
           {state.knownWeak.length > 0 &&
             `（${state.knownWeak.map((t) => THEMES[t].label).join('・')}）`}
         </span>
+        <button className="ghost giveup" onClick={onGiveUp}>諦める</button>
         {state.daysLeft === 0 && (
           <button className="go small" onClick={onFinish}>問答へ</button>
         )}
@@ -128,12 +143,12 @@ export default function Investigation({
 
       {state.daysLeft > 0 && (
         <>
-          <h2 className="sec">采配 — 名前を押すと 一組目 → 二組目 → 店番 と移る</h2>
+          <h2 className="sec">采配 — 名前を押すと 店番 → 一組目 → 二組目 と回る（初期は全員が店番）</h2>
           <div className="crew">
             {CAST_IDS.map((c) => (
-              <button key={c} className={`member s${slots[c] ?? 'x'}`} onClick={() => cycle(c)}>
+              <button key={c} className={`member s${slots[c]}`} onClick={() => cycle(c)}>
                 <span className="badge">
-                  {slots[c] === 0 ? '一' : slots[c] === 1 ? '二' : slots[c] === 2 ? '店' : '　'}
+                  {slots[c] === 0 ? '一' : slots[c] === 1 ? '二' : '店'}
                 </span>
                 <span className="nm">{CAST[c].name}</span>
                 <span className="tr">{traits(c)}</span>
@@ -143,14 +158,15 @@ export default function Investigation({
 
           <div className="teams">
             {[0, 1].map((i) => {
-              const pair = i === 0 ? pairA : pairB;
-              const chem = pair.length === 2 ? pairChemistry(pair[0]!, pair[1]!) : null;
+              const team = i === 0 ? teamA : teamB;
+              const chem = team.length === 2 ? pairChemistry(team[0]!, team[1]!) : null;
               return (
                 <div className="team" key={i}>
                   <div className="th2">{i === 0 ? '一組目' : '二組目'}</div>
                   <div className="who">
-                    {pair.length ? pair.map((c) => CAST[c].name).join(' と ') : '— 未編成'}
+                    {team.length ? team.map((c) => CAST[c].name).join(' と ') : '— 未編成'}
                   </div>
+                  {team.length === 1 && <div className="chem">単独（拾う網は狭い）</div>}
                   {chem && (
                     <div className="chem">
                       {chem.resonance > chem.friction ? '共鳴（深く狭く）' : chem.friction > chem.resonance ? '反発（浅く広く）' : '拮抗'}
@@ -181,15 +197,17 @@ export default function Investigation({
             })}
 
             <div className="team">
-              <div className="th2">店番（積読を崩す）</div>
-              <div className="who">{keeper ? CAST[keeper].name : '— 未指定'}</div>
+              <div className="th2">店番（積読を一冊だけ崩す）</div>
+              <div className="who">
+                {keepers.length ? keepers.map((c) => CAST[c].name).join('・') : '— なし'}
+              </div>
               <div className="spots">
-                {keeper && candidates.slice(0, 8).map((b) => (
+                {keepers.length > 0 && candidateBooks.slice(0, 12).map((b) => (
                   <button key={b.id} className={`spot${readBook === b.id ? ' on' : ''}`}
                     onClick={() => setReadBook(readBook === b.id ? null : b.id)}>
                     {b.title}
                     <span className="k">
-                      {SHELVES[b.shelf].label} 威力{b.power} ／{' '}
+                      {CAST[readerByBook.get(b.id)!].name}が読む ／ {SHELVES[b.shelf].label} 威力{b.power} ／{' '}
                       {b.themes.map((t) => (
                         <span key={t} className={state.knownWeak.includes(t) ? 'th weak' : 'th'}>
                           {THEMES[t].label}
@@ -198,15 +216,15 @@ export default function Investigation({
                     </span>
                   </button>
                 ))}
-                {keeper && candidates.length === 0 && <div className="k">読める本がもう無い。</div>}
-                {!keeper && <div className="k">誰か一人を店に残すと、積読を一冊崩せる。</div>}
+                {keepers.length > 0 && candidateBooks.length === 0 && <div className="k">店番の読める本がもう無い。</div>}
+                {keepers.length === 0 && <div className="k">全員を組に出すと、この日は本を読めない。</div>}
               </div>
             </div>
           </div>
 
           <div className="act">
             <div className="read">
-              一組は二人。行き先を選ぶと出せる。店番は一人だけ。
+              組は一人でも出せる（二人だと化学反応が起きる）。店番は何人いてもよいが、崩せるのは一冊。
             </div>
             <button className="go" onClick={endDay} disabled={!canGo}>一日を終える</button>
           </div>

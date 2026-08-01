@@ -11,7 +11,7 @@ import { contextFor, isWon, play } from '../engine/debate.js';
 import type { InvestigationState } from '../engine/investigate.js';
 import { newInvestigation, readersOf, toDebate, type Session } from './setup.js';
 import Investigation from './Investigation.js';
-import { CarryPick, Curtain, Epilogue, Intro, Title, portraitStyle } from './scenes.js';
+import { CarryPick, Curtain, Ending, Epilogue, HistoryScreen, Intro, Title, portraitStyle } from './scenes.js';
 
 const KIND_LABEL: Record<string, string> = {
   shoko: '証拠', shogen: '証言', dogu: '道具', sokuseki: '即席',
@@ -43,7 +43,34 @@ function saveCarry(c: Carry) {
   try { localStorage.setItem(CARRY_KEY, JSON.stringify(c)); } catch { /* 保存できなくても遊べる */ }
 }
 
-type Scene = 'title' | 'intro' | 'invest' | 'debate' | 'epilogue' | 'carry';
+/** 事件ごとの解決履歴。周回を跨いで残る。 */
+export interface SolveRecord {
+  /** 解決した回数（層の突破ごとに数える）。 */
+  count: number;
+  /** 最新の解決時に使った問答の手数。 */
+  lastTurns: number;
+  /** 最新の解決時に読んでいた本の題。 */
+  lastRead: string[];
+}
+export type History = Record<string, SolveRecord>;
+const HISTORY_KEY = 'hiiragi.history';
+function loadHistory(): History {
+  try {
+    const v = JSON.parse(localStorage.getItem(HISTORY_KEY) ?? '{}');
+    return v && typeof v === 'object' ? (v as History) : {};
+  } catch { return {}; }
+}
+function saveHistory(h: History) {
+  try { localStorage.setItem(HISTORY_KEY, JSON.stringify(h)); } catch { /* 保存できなくても遊べる */ }
+}
+/** 一層完結の事件を、これだけ解決すると多層の事件が開く。 */
+export const UNLOCK_THRESHOLD = 3;
+/** 一層完結の事件を、いくつ解決したか。 */
+export function soloSolvedCount(history: History): number {
+  return CASES.filter((c) => c.layers.length === 1 && (history[c.id]?.count ?? 0) > 0).length;
+}
+
+type Scene = 'title' | 'intro' | 'invest' | 'debate' | 'epilogue' | 'carry' | 'history' | 'ending';
 
 function Themes({ themes, weak, shared }: { themes: ThemeId[]; weak: ThemeId[]; shared: ThemeId[] }) {
   return (
@@ -68,6 +95,7 @@ export default function App() {
   const [gothic, setGothic] = useState(false);
   const [archive, setArchive] = useState<string[]>(() => loadArchive());
   const [carry, setCarry] = useState<Carry | null>(() => loadCarry());
+  const [history, setHistory] = useState<History>(() => loadHistory());
 
   const [caseIdx, setCaseIdx] = useState(0);
   const [layerIdx, setLayerIdx] = useState(0);
@@ -88,10 +116,13 @@ export default function App() {
 
   const appClass = `app${narrow ? ' narrow' : ''}${gothic ? ' gothic' : ''}`;
   const toggleFont = () => setGothic((v) => !v);
+  const unlocked = soloSolvedCount(history) >= UNLOCK_THRESHOLD;
 
   function veil(label: string, go: () => void) { setCurtain({ label, go }); }
 
   function beginCase(i: number) {
+    // 多層の事件は、一層完結を規定数解くまで開かない。
+    if (CASES[i]!.layers.length > 1 && !unlocked) return;
     setCaseIdx(i); setLayerIdx(0); setSeed(String(Date.now()));
     veil('イントロへ', () => setScene('intro'));
   }
@@ -115,9 +146,24 @@ export default function App() {
         <div className="scroll">
           <Title cases={CASES} archive={archive} onPick={beginCase}
             narrow={narrow} onToggleWidth={() => setNarrow((v) => !v)}
-            gothic={gothic} onToggleFont={toggleFont} />
+            gothic={gothic} onToggleFont={toggleFont}
+            unlocked={unlocked} soloSolved={soloSolvedCount(history)} unlockAt={UNLOCK_THRESHOLD}
+            onHistory={() => setScene('history')} />
         </div>
         {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ 履歴 ══
+  if (scene === 'history') {
+    return (
+      <div className={appClass}>
+        <div className="scroll">
+          <HistoryScreen cases={CASES} history={history}
+            onReset={() => { setHistory({}); saveHistory({}); }}
+            onBack={() => setScene('title')} />
+        </div>
       </div>
     );
   }
@@ -162,7 +208,8 @@ export default function App() {
         <div className="hand">
           <Investigation layer={layer} state={inv} seed={runKey}
             onAdvance={(next, lines, who) => { setInv(next); setDayReport({ lines, who }); }}
-            onFinish={() => veil('問答パートへ', () => { setSession(toDebate(layer, inv)); setScene('debate'); })} />
+            onFinish={() => veil('問答パートへ', () => { setSession(toDebate(layer, inv)); setScene('debate'); })}
+            onGiveUp={() => veil('エピローグへ', () => { setSession(toDebate(layer, inv)); setScene('epilogue'); })} />
           <div className="records">
             <details><summary>これまでの記録</summary>
               <div className="body">{inv.log.map((l, i) => <div key={i}>{l}</div>)}</div>
@@ -197,6 +244,8 @@ export default function App() {
   if (scene === 'epilogue' && session) {
     const won = isWon(session.debate);
     const deeper = layerIdx + 1 < theCase.layers.length;
+    // 三層の事件を最後まで崩したら、店の後日を見せる
+    const finale = won && !deeper && theCase.layers.length >= 3;
     return (
       <div className={appClass}>
         <div className="scroll">
@@ -206,7 +255,21 @@ export default function App() {
               beginInvestigation(layerIdx + 1, session.investigation.read);
               setScene('invest');
             })}
-            onClose={() => veil('店へ戻る', () => setScene('carry'))} />
+            onClose={() => finale
+              ? veil('店の後日へ', () => setScene('ending'))
+              : veil('店へ戻る', () => setScene('carry'))} />
+        </div>
+        {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ エンディング（三層の事件を解決） ══
+  if (scene === 'ending' && session) {
+    return (
+      <div className={appClass}>
+        <div className="scroll">
+          <Ending theCase={theCase} onClose={() => veil('店へ戻る', () => setScene('carry'))} />
         </div>
         {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
       </div>
@@ -272,7 +335,25 @@ export default function App() {
     const ids: string[] = [];
     for (const w of CAST_IDS) ids.push(...(investigation.read[w] ?? []));
     setArchive(addToArchive(ids));
+    // 崩せたときだけ解決履歴に刻む。諦めたときは残さない。
+    if (isWon(debate)) {
+      const titles = books.map((b) => b.title);
+      const turns = layer.turns - debate.turnsLeft;
+      setHistory((h) => {
+        const prev = h[theCase.id];
+        const next: History = {
+          ...h,
+          [theCase.id]: { count: (prev?.count ?? 0) + 1, lastTurns: turns, lastRead: titles },
+        };
+        saveHistory(next);
+        return next;
+      });
+    }
     veil('エピローグへ', () => setScene('epilogue'));
+  }
+  function concede() {
+    // 未解決のまま、幕を引く。isWon が偽なので履歴には残らない。
+    toEpilogue();
   }
 
   return (
@@ -284,6 +365,7 @@ export default function App() {
             <h1>問答</h1>
             <span className="sub">{layer.opponent.name}</span>
             <button className="ghost" onClick={toggleFont}>{gothic ? '明朝' : 'ゴシック'}</button>
+            {!over && <button className="ghost giveup" onClick={concede}>諦める</button>}
             <span className="turns">残り <b>{debate.turnsLeft}</b> 手</span>
           </div>
 

@@ -75,8 +75,8 @@ export function autoInvestigate(layer: Layer, seed: string): InvestigationState 
       })[0];
 
     const dispatches: DayPlan['dispatches'] = [];
-    if (record) dispatches.push({ pair: [BOOKISH[0]!, leg[0]!], location: record.id });
-    if (people) dispatches.push({ pair: [BOOKISH[1]!, leg[1]!], location: people.id });
+    if (record) dispatches.push({ members: [BOOKISH[0]!, leg[0]!], location: record.id });
+    if (people) dispatches.push({ members: [BOOKISH[1]!, leg[1]!], location: people.id });
 
     const book = unreadFor(inv, leg[2]!);
     inv = runDay(inv, { dispatches, ...(book ? { reader: { who: leg[2]!, book } } : {}) }, rng);
