@@ -2,14 +2,15 @@ import type { BookTag, ShelfId } from '../../types.js';
 import { SHELF_IDS } from '../shelves.js';
 
 /**
- * 柊書房の蔵書。棚ごとに3〜5冊。
+ * 柊書房の蔵書。棚ごとに3〜5冊。全冊、実在する書物(『』付き)。
  *
- * 二種類のカードが同居する:
- *   概念名カード … 一つの照射角を名づけたもの(例: モラル・ライセンシング)
- *   『』付きカード … 千夜千冊から選んだ実在の古典。その一冊が語る核を gist に置く
+ * 「一冊 = 一つの観念(themes)」で、実書の核心を一行(gist)に凝縮したものが、
+ * 討論で切ったときの文言の素になる。各棚は観念を重複して持つ。
+ * 二冊選べば、その棚の急所は概ね覆える。
  *
- * どちらも「一冊 = 一つの観念(themes)」で、表題が討論で切ったときの文言の核になる。
- * 各棚は観念を重複して持つ。二冊選べば、その棚の急所は概ね覆える。
+ * 出自は二系統:
+ *   千夜千冊から選んだもの(主に古典・人文)
+ *   その概念を最初に世に出した、あるいは最も広めた定番書(行動経済学・組織論など)
  *
  * 保守の指針:
  *   ここでは shelf を書かず、棚ごとの配列にまとめる。
@@ -26,14 +27,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   jinshin: [
     {
       id: 'jinshin-moral-licensing',
-      title: 'モラル・ライセンシング',
+      title: '『ずる――噓とごまかしの行動経済学』',
       power: 2,
       themes: ['kyokai', 'dairi'],
-      gist: '善い行いをした者は、そのぶん後の逸脱を自分に許す',
+      gist: '少しだけ良いことをした人間ほど、その後の小さな不正に手を染めやすくなる',
     },
     {
       id: 'jinshin-dissonance',
-      title: '認知的不協和',
+      title: '『認知的不協和の理論』',
       power: 2,
       themes: ['bunrui', 'kokuhaku'],
       gist: '行いと信条が食い違うとき、人は行いではなく信条のほうを書き換える',
@@ -65,14 +66,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   seken: [
     {
       id: 'seken-normalization',
-      title: '逸脱の常態化',
+      title: '『チャレンジャー号 打ち上げ決定の内幕』',
       power: 2,
       themes: ['kyokai', 'keisho'],
-      gist: '小さな違反が繰り返されるうち、誰もそれを違反と呼ばなくなる',
+      gist: '小さな逸脱が咎められずに繰り返されるうち、それはいつしか手順の一部になる',
     },
     {
       id: 'seken-defensive-routine',
-      title: '組織的防衛ルーティン',
+      title: '『組織の罠』',
       power: 3,
       themes: ['dairi', 'kokuhaku'],
       gist: '組織は学べない理由を自分で作り、それを話題にすること自体を禁じる',
@@ -104,17 +105,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   tochi: [
     {
       id: 'tochi-gift-manners',
-      title: '贈答の作法',
+      title: '『贈与交換の人類学』',
       power: 2,
       themes: ['kokan', 'kenri'],
-      gist: '何を、いつ、誰に贈るかは、土地ごとに厳密に決まっている',
+      gist: '何を、いつ、誰に贈るかは、土地ごとに厳密な文法を持っている',
     },
     {
       id: 'tochi-ko-kumi',
-      title: '講と組',
+      title: '『日本の祭り』',
       power: 1,
       themes: ['keisho', 'kokan'],
-      gist: '金と労力を融通し合う、記録に残らない小さな共同体の仕組み',
+      gist: '祭りを支える講の金と労力は、記録に残らない貸し借りで巡っている',
     },
     {
       id: 'tochi-forgotten',
@@ -143,17 +144,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   monogatari: [
     {
       id: 'monogatari-excuse-types',
-      title: '言い訳の類型',
+      title: '『なぜあの人はあやまちを認めないのか』',
       power: 2,
       themes: ['kokuhaku', 'bunrui'],
-      gist: '人が自分を許すときの語り口には、限られた型しかない',
+      gist: '人は誤りを認めるのではなく、誤りのほうを記憶から都合よく編集する',
     },
     {
       id: 'monogatari-tragedy',
-      title: '悲劇の構造',
+      title: '『詩学』',
       power: 3,
       themes: ['keisho', 'kenri'],
-      gist: '主人公が自らの美点によって滅ぶという筋書き',
+      gist: '主人公が自らの美点によって滅ぶという筋書きを、この一冊が最初に見抜いた',
     },
     {
       id: 'monogatari-genji',
@@ -175,17 +176,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   shumi: [
     {
       id: 'shumi-design-fashion',
-      title: '意匠の流行',
+      title: '『モードの迷宮』',
       power: 1,
       themes: ['keisho', 'shisen'],
-      gist: 'いつ作られたものかは、飾りの形が語ってしまう',
+      gist: 'いつ作られたものかは、飾りの形のほうが先に語ってしまう',
     },
     {
       id: 'shumi-composition',
-      title: '見せるための構図',
+      title: '『写真論』',
       power: 2,
       themes: ['shisen', 'kiroku'],
-      gist: '写真に人が写るとき、その人は既に見られ方を選んでいる',
+      gist: '写真に撮られた瞬間、その人はすでに見られ方を選んでいる',
     },
     {
       id: 'shumi-araki',
@@ -207,17 +208,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   suji: [
     {
       id: 'suji-benford',
-      title: 'ベンフォードの法則',
+      title: '『統計でウソをつく法』',
       power: 3,
       themes: ['kiroku', 'bunrui'],
-      gist: '自然に集まった数字の先頭桁には偏りがある。作られた数字にはそれがない',
+      gist: '作られた数字は、自然に集まった数字とは違う顔つきをしている',
     },
     {
       id: 'suji-sampling-bias',
-      title: '標本の偏り',
+      title: '『「社会調査」のウソ』',
       power: 2,
       themes: ['shisen', 'kajo'],
-      gist: '誰を数えなかったかが、答えのほうを決めている',
+      gist: '誰を数えなかったかが、出てきた答えのほうを決めている',
     },
     {
       id: 'suji-accidental',
@@ -239,17 +240,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   busshou: [
     {
       id: 'busshou-ink-aging',
-      title: 'インクの経年',
+      title: '『元素周期表』',
       power: 2,
       themes: ['kiroku', 'keisho'],
-      gist: '書かれた時期は、紙と染料が覚えている',
+      gist: '物質はそれぞれの尺度で古びる。書かれた時期は、紙と染料が覚えている',
     },
     {
       id: 'busshou-sound-distance',
-      title: '音の伝わる距離',
+      title: '『世界の不思議な音』',
       power: 1,
       themes: ['shisen', 'kyokai'],
-      gist: 'その位置から、その音は本当に聞こえたのか',
+      gist: 'その位置から、その音は本当に聞こえる距離だったのか',
     },
     {
       id: 'busshou-genes',
@@ -271,14 +272,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   gigei: [
     {
       id: 'gigei-stocktaking',
-      title: '帳合と棚卸',
+      title: '『帳簿の世界史』',
       power: 2,
       themes: ['kiroku', 'kajo'],
-      gist: '物の数を合わせる作業には、必ず人ごとの癖と手順がある',
+      gist: '数を合わせる作業には、必ず時代と人ごとの癖と手順がある',
     },
     {
       id: 'gigei-printing',
-      title: '印刷と製本',
+      title: '『印刷革命』',
       power: 1,
       themes: ['kajo', 'kiroku'],
       gist: '刷られた部数と綴じられた部数は、しばしば一致しない',
@@ -303,17 +304,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   kanjo: [
     {
       id: 'kanjo-principal-agent',
-      title: 'プリンシパル・エージェント問題',
+      title: '『近代株式会社と私有財産』',
       power: 3,
       themes: ['dairi', 'kenri'],
       gist: '任された者の利益と、任せた者の利益は、そもそも一致しない',
     },
     {
       id: 'kanjo-sunk-cost',
-      title: 'サンクコスト',
+      title: '『行動経済学の逆襲』',
       power: 1,
       themes: ['kajo', 'kokan'],
-      gist: 'すでに失ったものが、これからの判断を歪める',
+      gist: 'すでに失ったものが、これからの判断のほうを歪めてしまう',
     },
     {
       id: 'kanjo-gift',
@@ -342,14 +343,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   riho: [
     {
       id: 'riho-interpretation',
-      title: '規程の解釈',
+      title: '『法の帝国』',
       power: 2,
       themes: ['kenri', 'bunrui'],
-      gist: '同じ条文が、立場によって別の意味を持つ',
+      gist: '同じ条文が、読む者の物語の描き方によって別の意味を持つ',
     },
     {
       id: 'riho-whistleblowing',
-      title: '内部通報の構造',
+      title: '『シークレット――ペンタゴン・ペーパーズ』',
       power: 2,
       themes: ['kokuhaku', 'dairi'],
       gist: '告発者は、告発した瞬間に組織の外側に置かれる',
@@ -374,14 +375,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   kotoba: [
     {
       id: 'kotoba-euphemism',
-      title: '婉曲表現',
+      title: '『思考する言語』',
       power: 2,
       themes: ['kyokai', 'bunrui'],
-      gist: '言い換えられた言葉は、何を守るために言い換えられたのか',
+      gist: '言い換えられた言葉は、何を守るために言い換えられたのかを教えてくれる',
     },
     {
       id: 'kotoba-honorifics',
-      title: '敬語の距離',
+      title: '『敬語はこわくない』',
       power: 1,
       themes: ['kenri', 'shisen'],
       gist: '誰が誰にどう話すかで、序列は残らず露出する',
@@ -413,14 +414,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   henshu: [
     {
       id: 'henshu-subject-retreat',
-      title: '主語の後退',
+      title: '『日本語の作文技術』',
       power: 3,
       themes: ['dairi', 'kokuhaku'],
-      gist: '「そうなった」と書かれた文からは、誰がやったのかが消えている',
+      gist: '「そうなった」と書かれた文からは、誰がやったのかが静かに消えている',
     },
     {
       id: 'henshu-omissions',
-      title: '省かれたものの目録',
+      title: '『知の編集工学』',
       power: 2,
       themes: ['kiroku', 'kajo'],
       gist: '並べ方は、並べなかったもののほうによって決まっている',
@@ -438,17 +439,17 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   raireki: [
     {
       id: 'raireki-paradigm',
-      title: 'パラダイム論',
+      title: '『科学革命の構造』',
       power: 3,
       themes: ['bunrui', 'kenri'],
-      gist: '何が問題であるかは、その時代の枠組みのほうが決めている',
+      gist: '何が問題であるかは、その時代の枠組みのほうが先に決めている',
     },
     {
       id: 'raireki-pseudo-science',
-      title: '疑似科学と科学メタファー',
+      title: '『推測と反駁』',
       power: 2,
       themes: ['kenri', 'kyokai'],
-      gist: '科学の正しさを掲げるものと、科学の視点を借りるものは、まるで違う',
+      gist: '科学の正しさを掲げるものと、科学の身ぶりを借りるものは、まるで違う',
     },
     {
       id: 'raireki-tacit',
@@ -463,14 +464,14 @@ const SHELF_BOOKS: Record<ShelfId, BookSeed[]> = {
   chinmoku: [
     {
       id: 'chinmoku-unspoken',
-      title: '語られなかったことの重み',
+      title: '『苦海浄土』',
       power: 3,
       themes: ['kokuhaku', 'kiroku'],
       gist: '記録に無いということは、無かったということではない',
     },
     {
       id: 'chinmoku-tacit-consent',
-      title: '沈黙の合意',
+      title: '『「空気」の研究』',
       power: 2,
       themes: ['kokuhaku', 'kyokai'],
       gist: '誰も言わないという形で、全員が同意していることがある',

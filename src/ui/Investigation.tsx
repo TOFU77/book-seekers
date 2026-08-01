@@ -42,7 +42,12 @@ export default function Investigation({
   layer: Layer;
   state: InvestigationState;
   seed: string;
-  onAdvance: (next: InvestigationState, dayLog: string[], speaker: CharacterId) => void;
+  onAdvance: (
+    next: InvestigationState,
+    dayLog: string[],
+    speaker: CharacterId,
+    dayActors: CharacterId[],
+  ) => void;
   onFinish: () => void;
   onGiveUp: () => void;
 }) {
@@ -111,7 +116,9 @@ export default function Investigation({
     const next = runDay(state, plan, dayRng(seed, dayNo));
     // その日の報告は、出向いた者のうち一人が口にする
     const speaker = dispatches[0]?.members[0] ?? reader?.who ?? CAST_IDS[0]!;
-    onAdvance(next, next.log.slice(before), speaker);
+    // 座談で口を開きやすいのも、その日実際に動いた者たち
+    const dayActors = [...dispatches.flatMap((d) => d.members), ...(reader ? [reader.who] : [])];
+    onAdvance(next, next.log.slice(before), speaker, dayActors);
     // 采配は前日のまま保持する。変えたいときだけ押せばいい。
     // ただし口を閉ざした場所は行き先から外す。読んだ本は消費したので選び直す。
     setWhere((w) => [

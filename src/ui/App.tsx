@@ -6,10 +6,11 @@ import { CASES } from '../content/cases/index.js';
 import { SHELVES } from '../content/shelves.js';
 import { THEMES } from '../content/themes.js';
 import { CAST, CAST_IDS } from '../content/cast.js';
+import { voiceSalon, type SalonLine } from '../content/banter.js';
 import { evaluateArgument, sharedThemes } from '../engine/synergy.js';
 import { contextFor, isWon, play } from '../engine/debate.js';
 import type { InvestigationState } from '../engine/investigate.js';
-import { newInvestigation, readersOf, toDebate, type Session } from './setup.js';
+import { newInvestigation, readersOf, salonRng, toDebate, type Session } from './setup.js';
 import Investigation from './Investigation.js';
 import { CarryPick, Curtain, Ending, Epilogue, HistoryScreen, Intro, Title, portraitStyle } from './scenes.js';
 
@@ -103,7 +104,7 @@ export default function App() {
 
   const [inv, setInv] = useState<InvestigationState | null>(null);
   const [session, setSession] = useState<Session | null>(null);
-  const [dayReport, setDayReport] = useState<{ lines: string[]; who: CharacterId } | null>(null);
+  const [dayReport, setDayReport] = useState<{ lines: string[]; who: CharacterId; banter: SalonLine[] } | null>(null);
 
   const [target, setTarget] = useState<WallKind>('shinri');
   const [pickedNote, setPickedNote] = useState<string | null>(null);
@@ -207,7 +208,13 @@ export default function App() {
         </div>
         <div className="hand">
           <Investigation layer={layer} state={inv} seed={runKey}
-            onAdvance={(next, lines, who) => { setInv(next); setDayReport({ lines, who }); }}
+            onAdvance={(next, lines, who, dayActors) => {
+              setInv(next);
+              const dayNo = layer.days - inv.daysLeft + 1;
+              const rng = salonRng(runKey, dayNo);
+              const banter = voiceSalon(next.lastSalonEvents, dayActors, (arr) => rng.pick(arr));
+              setDayReport({ lines, who, banter });
+            }}
             onFinish={() => veil('問答パートへ', () => { setSession(toDebate(layer, inv)); setScene('debate'); })}
             onGiveUp={() => veil('エピローグへ', () => { setSession(toDebate(layer, inv)); setScene('epilogue'); })} />
           <div className="records">
@@ -230,6 +237,16 @@ export default function App() {
                     <p className={`mono${salon ? ' salon' : ''}${sub ? ' sub' : ''}`} key={i}>{l.trim()}</p>
                   );
                 })}
+                {dayReport.banter.length > 0 && (
+                  <div className="banter">
+                    {dayReport.banter.map((b, i) => (
+                      <p className="bline" key={i}>
+                        <span className="bwho">{CAST[b.who].name}</span>
+                        {b.line}
+                      </p>
+                    ))}
+                  </div>
+                )}
                 <div className="tap">画面をタップで閉じる</div>
               </div>
             </div>

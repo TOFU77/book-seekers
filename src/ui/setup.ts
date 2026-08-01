@@ -109,6 +109,11 @@ export function dayRng(seed: string, dayIndex: number) {
   return createRng(`${seed}-day${dayIndex}`);
 }
 
+/** 座談の掛け合いを選ぶ乱数。捜査本体の乱数消費に影響しないよう系列を分ける。 */
+export function salonRng(seed: string, dayIndex: number) {
+  return createRng(`${seed}-day${dayIndex}-salon`);
+}
+
 /** 捜査を終えて問答へ移る。 */
 export function toDebate(layer: Layer, investigation: InvestigationState): Session {
   const debate = startDebate(layer, CAST_IDS.slice(), investigation.read, LIBRARY);

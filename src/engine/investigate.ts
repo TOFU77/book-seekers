@@ -3,6 +3,7 @@ import type {
   Layer,
   Location,
   NotebookTag,
+  SalonEvent,
   ShelfId,
   ThemeId,
 } from '../types.js';
@@ -86,6 +87,16 @@ export interface InvestigationState {
   /** 場所ごとの訪問回数。 */
   visits: Record<string, number>;
   log: string[];
+  /**
+   * 直近の座談で起きたこと。UI(content の banter.ts 経由)が
+   * 誰の口から何と言わせるかを決めるための、構造化された引き金。
+   * 前日の分は毎日上書きされる。
+   */
+  lastSalonEvents: SalonEvent[];
+  /** 手応え(atari)を含む日が連続している日数。atari を含まない日でリセット。 */
+  atariStreak: number;
+  /** 全滅(karaburi のみ)の日が連続している日数。派遣が無かった日もリセット。 */
+  karaburiStreak: number;
 }
 
 /** 一日の采配。 */
@@ -111,6 +122,9 @@ export function startInvestigation(
     guard: {},
     visits: {},
     log: [],
+    lastSalonEvents: [],
+    atariStreak: 0,
+    karaburiStreak: 0,
   };
 }
 
@@ -201,13 +215,17 @@ export function dispatchYield(
  * 座談。その日持ち帰ったものを突き合わせ、人物像を結ぶ。
  * 反応トリガー(弱点主題)は、ここでしか判明しない。
  */
-function salon(state: InvestigationState): InvestigationState {
+function salon(state: InvestigationState, daySignals: SalonEvent[] = []): InvestigationState {
   const weakPool = [
     ...new Set([...state.layer.psych.weakThemes, ...state.layer.logical.weakThemes]),
   ];
   const knownWeak = [...state.knownWeak];
   const knownResistant = [...state.knownResistant];
   const log = [...state.log];
+  // その日判明したことだけを引き金として返す。UI 側(content/banter.ts)が
+  // 誰の口から何と言わせるかを決める。文面は engine の関知するところではない。
+  // 優先度: 急所 > 耐性 > 手応え(daySignals は末尾に足す)。
+  const events: SalonEvent[] = [];
 
   const { insightPerTrigger, insightPerResistance } = INVESTIGATION_TUNING;
 
@@ -217,6 +235,7 @@ function salon(state: InvestigationState): InvestigationState {
     const next = weakPool[knownWeak.length]!;
     knownWeak.push(next);
     log.push(`座談 — 相手は「${THEMES[next].label}」に耐えられない`);
+    events.push({ kind: 'weak', theme: next });
   }
 
   const resistPool = [
@@ -229,9 +248,10 @@ function salon(state: InvestigationState): InvestigationState {
     const shelf = resistPool[knownResistant.length]!;
     knownResistant.push(shelf);
     log.push(`座談 — 相手は${SHELVES[shelf].label}を既に読み込んでいる`);
+    events.push({ kind: 'resist', shelf });
   }
 
-  return { ...state, knownWeak, knownResistant, log };
+  return { ...state, knownWeak, knownResistant, log, lastSalonEvents: [...events, ...daySignals] };
 }
 
 /** 一日を進める。状態は変更せず、新しい状態を返す。 */
@@ -246,6 +266,8 @@ export function runDay(state: InvestigationState, plan: DayPlan, rng: Rng): Inve
   let insight = state.insight;
 
   const used = new Set<CharacterId>();
+  // その日の手応えを集めておく。連続すれば座談の話題になる。
+  const feels: Feel[] = [];
 
   for (const { members, location } of plan.dispatches) {
     const loc = state.layer.locations.find((l) => l.id === location);
@@ -259,6 +281,7 @@ export function runDay(state: InvestigationState, plan: DayPlan, rng: Rng): Inve
     members.forEach((p) => used.add(p));
 
     const y = dispatchYield({ ...state, notebook, guard, visits }, members, loc, rng);
+    feels.push(y.feel);
     notebook.push(...y.tags);
     insight += y.insight;
     guard[location] = (guard[location] ?? 0) + y.guard;
@@ -295,14 +318,28 @@ export function runDay(state: InvestigationState, plan: DayPlan, rng: Rng): Inve
     }
   }
 
-  return salon({
-    ...state,
-    daysLeft: state.daysLeft - 1,
-    notebook,
-    insight,
-    read,
-    guard,
-    visits,
-    log,
-  });
+  // 手応えのある日が続けば「大当たり」、無い日が続けば「空振り続き」。
+  // どちらも二日続いてはじめて座談の話題になる — 一日だけでは、ただの運。
+  const atariStreak = feels.some((f) => f === 'atari') ? state.atariStreak + 1 : 0;
+  const karaburiStreak =
+    feels.length > 0 && feels.every((f) => f === 'karaburi') ? state.karaburiStreak + 1 : 0;
+  const daySignals: SalonEvent[] = [];
+  if (atariStreak >= 2) daySignals.push({ kind: 'atari' });
+  if (karaburiStreak >= 2) daySignals.push({ kind: 'stuck' });
+
+  return salon(
+    {
+      ...state,
+      daysLeft: state.daysLeft - 1,
+      notebook,
+      insight,
+      read,
+      guard,
+      visits,
+      log,
+      atariStreak,
+      karaburiStreak,
+    },
+    daySignals,
+  );
 }

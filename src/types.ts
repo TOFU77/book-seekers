@@ -320,3 +320,30 @@ export interface ArgumentResult {
     notes: string[];
   };
 }
+
+// ─────────────────────────────────────────────
+// 座談(捜査の合間の掛け合い)
+// ─────────────────────────────────────────────
+
+/**
+ * 座談での引き金。engine はこの構造化イベントだけを返す。
+ * 「誰が何と言うか」は content 側(banter.ts)の仕事 — engine は
+ * 人物のセリフや気質を知らない。
+ *
+ *   weak   … 弱点主題が判明した
+ *   resist … 耐性棚が判明した
+ *   atari  … 手応えの良い日が続いた(大当たり)
+ *   stuck  … 空振りの日が続いた
+ */
+export type SalonEventKind = 'weak' | 'resist' | 'atari' | 'stuck';
+
+export interface SalonEvent {
+  kind: SalonEventKind;
+  /** weak のとき、判明した弱点主題。 */
+  theme?: ThemeId;
+  /** resist のとき、判明した耐性棚。 */
+  shelf?: ShelfId;
+}
+
+/** 掛け合いに乗る感情。小説の登場人物が見せがちな五種から、まずは主要四つ。 */
+export type SalonEmotion = 'iyoku' | 'odoroki' | 'konwaku' | 'kattou' | 'kyoukan';

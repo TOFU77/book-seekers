@@ -345,6 +345,16 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
   color: var(--accent); border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 12px;
 }
 
+/* 座談の掛け合い — 事実の記録とは分けて、少し砕けた調子で置く */
+.banter {
+  margin-top: 14px; padding-top: 10px; border-top: 1px dotted var(--rule);
+}
+.banter .bline { margin: 6px 0 0; font-size: 14px; line-height: 1.7; }
+.banter .bwho {
+  display: inline-block; font-size: 11px; color: var(--ink-soft);
+  margin-right: 6px; letter-spacing: 0.05em;
+}
+
 .verdict { margin-top: 8px; padding: 8px 12px; border: 2px solid var(--ink); background: #fff; font-size: 14px; }
 .verdict.lose { border-color: var(--accent); }
 
