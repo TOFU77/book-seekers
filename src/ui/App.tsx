@@ -1,0 +1,398 @@
+import { useMemo, useState } from 'react';
+import type {
+  Argument, ArgumentResult, BookTag, CharacterId, ShelfId, ThemeId, WallKind,
+} from '../types.js';
+import { CASES } from '../content/cases/index.js';
+import { SHELVES } from '../content/shelves.js';
+import { THEMES } from '../content/themes.js';
+import { CAST, CAST_IDS } from '../content/cast.js';
+import { evaluateArgument, sharedThemes } from '../engine/synergy.js';
+import { contextFor, isWon, play } from '../engine/debate.js';
+import type { InvestigationState } from '../engine/investigate.js';
+import { newInvestigation, readersOf, toDebate, type Session } from './setup.js';
+import Investigation from './Investigation.js';
+import { Curtain, Epilogue, Intro, Title, portraitStyle } from './scenes.js';
+
+const KIND_LABEL: Record<string, string> = {
+  shoko: '証拠', shogen: '証言', dogu: '道具', sokuseki: '即席',
+};
+const COMBO_LABEL: Record<string, string> = {
+  tanpin: '単品', seidoku: '精読', tanamatagi: '棚またぎ', yoseatsume: '寄せ集め',
+};
+
+const ARCHIVE_KEY = 'hiiragi.read';
+function loadArchive(): string[] {
+  try { const v = JSON.parse(localStorage.getItem(ARCHIVE_KEY) ?? '[]'); return Array.isArray(v) ? v : []; }
+  catch { return []; }
+}
+function addToArchive(ids: string[]): string[] {
+  const merged = [...new Set([...loadArchive(), ...ids])];
+  try { localStorage.setItem(ARCHIVE_KEY, JSON.stringify(merged)); } catch { /* 保存できなくても遊べる */ }
+  return merged;
+}
+
+type Scene = 'title' | 'intro' | 'invest' | 'debate' | 'epilogue';
+
+function Themes({ themes, weak, shared }: { themes: ThemeId[]; weak: ThemeId[]; shared: ThemeId[] }) {
+  return (
+    <div className="themes">
+      {themes.map((t) => (
+        <span key={t} className={`th${weak.includes(t) ? ' weak' : ''}${shared.includes(t) ? ' shared' : ''}`}>
+          {THEMES[t].label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+interface Flash {
+  result: ArgumentResult; speaker: CharacterId; target: WallKind; before: number; after: number;
+}
+
+export default function App() {
+  const [scene, setScene] = useState<Scene>('title');
+  const [curtain, setCurtain] = useState<{ label: string; go: () => void } | null>(null);
+  const [narrow, setNarrow] = useState(false);
+  const [archive, setArchive] = useState<string[]>(() => loadArchive());
+
+  const [caseIdx, setCaseIdx] = useState(0);
+  const [layerIdx, setLayerIdx] = useState(0);
+  const [seed, setSeed] = useState(() => String(Date.now()));
+
+  const [inv, setInv] = useState<InvestigationState | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
+  const [dayReport, setDayReport] = useState<{ lines: string[]; who: CharacterId } | null>(null);
+
+  const [target, setTarget] = useState<WallKind>('shinri');
+  const [pickedNote, setPickedNote] = useState<string | null>(null);
+  const [pickedBooks, setPickedBooks] = useState<string[]>([]);
+  const [flash, setFlash] = useState<Flash | null>(null);
+
+  const theCase = CASES[caseIdx]!;
+  const layer = theCase.layers[Math.min(layerIdx, theCase.layers.length - 1)]!;
+  const runKey = `${theCase.id}-${layerIdx}-${seed}`;
+
+  function veil(label: string, go: () => void) { setCurtain({ label, go }); }
+
+  function beginCase(i: number) {
+    setCaseIdx(i); setLayerIdx(0); setSeed(String(Date.now()));
+    veil('イントロへ', () => setScene('intro'));
+  }
+
+  function beginInvestigation(depthIdx: number, carried?: Partial<Record<CharacterId, string[]>>) {
+    const l = theCase.layers[depthIdx]!;
+    setLayerIdx(depthIdx);
+    setInv(newInvestigation(l, `${theCase.id}-${depthIdx}-${seed}`, carried));
+    setSession(null); setDayReport(null);
+    setPickedNote(null); setPickedBooks([]); setFlash(null); setTarget('shinri');
+  }
+
+  function toTitle() {
+    setInv(null); setSession(null); setScene('title');
+  }
+
+  // ══ タイトル ══
+  if (scene === 'title') {
+    return (
+      <div className={`app${narrow ? ' narrow' : ''}`}>
+        <div className="scroll">
+          <Title cases={CASES} archive={archive} onPick={beginCase}
+            narrow={narrow} onToggleWidth={() => setNarrow((v) => !v)} />
+        </div>
+        {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ イントロ ══
+  if (scene === 'intro') {
+    return (
+      <div className={`app${narrow ? ' narrow' : ''}`}>
+        <div className="scroll">
+          <Intro theCase={theCase} layer={layer} voiceIdx={Number(seed) % theCase.voices.length} />
+          <div className="eend">
+            <button className="go" onClick={() =>
+              veil('捜査パートへ', () => { beginInvestigation(layerIdx); setScene('invest'); })}>
+              話を聞きに行く
+            </button>
+          </div>
+        </div>
+        {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ 捜査 ══
+  if (scene === 'invest' && inv) {
+    return (
+      <div className={`app${narrow ? ' narrow' : ''}`}>
+        <div className="stage">
+          <div className="bar">
+            <h1>捜査</h1>
+            <span className="sub">{theCase.title}／層{layer.depth}「{layer.title}」</span>
+            <span className="turns"><b>{inv.daysLeft}</b> 日</span>
+          </div>
+          <details className="suspect">
+            <summary>
+              <span className="who">{layer.opponent.name}</span>
+              <span className="role">{layer.opponent.role}</span>
+            </summary>
+            <p>{layer.opponent.justification}</p>
+          </details>
+        </div>
+        <div className="hand">
+          <Investigation layer={layer} state={inv} seed={runKey}
+            onAdvance={(next, lines, who) => { setInv(next); setDayReport({ lines, who }); }}
+            onFinish={() => veil('対決パートへ', () => { setSession(toDebate(layer, inv)); setScene('debate'); })} />
+          <div className="records">
+            <details><summary>これまでの記録</summary>
+              <div className="body">{inv.log.map((l, i) => <div key={i}>{l}</div>)}</div>
+            </details>
+          </div>
+        </div>
+
+        {dayReport && (
+          <div className="overlay" onClick={() => setDayReport(null)}>
+            <div className="panel finale">
+              <div className="portrait" style={portraitStyle(dayReport.who)} />
+              <div className="said">
+                <div className="name">{CAST[dayReport.who].name}の報告</div>
+                {dayReport.lines.map((l, i) => (
+                  <p className={`mono${l.startsWith('座談') ? ' salon' : ''}`} key={i}>{l}</p>
+                ))}
+                <div className="tap">画面をタップで閉じる</div>
+              </div>
+            </div>
+          </div>
+        )}
+        {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ エピローグ ══
+  if (scene === 'epilogue' && session) {
+    const won = isWon(session.debate);
+    const deeper = layerIdx + 1 < theCase.layers.length;
+    return (
+      <div className={`app${narrow ? ' narrow' : ''}`}>
+        <div className="scroll">
+          <Epilogue layer={layer} won={won} turns={layer.turns - session.debate.turnsLeft}
+            hasDeeper={deeper}
+            onDig={() => veil('捜査パートへ', () => {
+              beginInvestigation(layerIdx + 1, session.investigation.read);
+              setScene('invest');
+            })}
+            onClose={() => veil('店へ戻る', toTitle)} />
+        </div>
+        {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+      </div>
+    );
+  }
+
+  // ══ 対決 ══
+  if (!session) { return <div className="app"><div className="scroll"><p className="lead">…</p></div></div>; }
+
+  const { debate, investigation, notebook, books } = session;
+  const knownWeak = investigation.knownWeak;
+  const noteById = new Map(notebook.map((n) => [n.id, n]));
+  const bookById = new Map(books.map((b) => [b.id, b]));
+  const chosenBooks = pickedBooks.map((id) => bookById.get(id)!).filter(Boolean);
+  const chosenNote = pickedNote ? noteById.get(pickedNote) : undefined;
+  const shared = chosenBooks.length >= 2 ? sharedThemes(chosenBooks) : [];
+  const argument: Argument | null =
+    chosenNote && chosenBooks.length > 0 ? { notebook: chosenNote, books: chosenBooks } : null;
+  const result = argument ? evaluateArgument(argument, contextFor(debate, target)) : null;
+  const pending = result?.ok ? result.damage : 0;
+  const over = isWon(debate) || debate.turnsLeft <= 0;
+  const wall = (k: WallKind) => (k === 'ronri' ? layer.logical : layer.psych);
+
+  const byShelf = (() => {
+    const m = new Map<ShelfId, BookTag[]>();
+    for (const b of books) { const l = m.get(b.shelf); if (l) l.push(b); else m.set(b.shelf, [b]); }
+    return [...m.entries()].sort((a, b) => SHELVES[a[0]].division.localeCompare(SHELVES[b[0]].division));
+  })();
+
+  function toggleBook(id: string) {
+    setPickedBooks((p) => (p.includes(id) ? p.filter((x) => x !== id) : p.length >= 3 ? p : [...p, id]));
+  }
+  function speakerFor(bs: BookTag[]): CharacterId {
+    const top = [...bs].sort((a, b) => b.power - a.power)[0];
+    return (top ? readersOf(investigation, top.id)[0] : undefined) ?? CAST_IDS[0]!;
+  }
+  function commit() {
+    if (!argument || !result?.ok) return;
+    const before = debate.remaining[target];
+    const next = play(debate, target, argument);
+    setSession((s) => (s ? { ...s, debate: next.state } : s));
+    setFlash({ result: next.result, speaker: speakerFor(chosenBooks), target, before, after: next.state.remaining[target] });
+    setPickedNote(null); setPickedBooks([]);
+    const other: WallKind = target === 'ronri' ? 'shinri' : 'ronri';
+    if (next.state.remaining[target] <= 0 && next.state.remaining[other] > 0) setTarget(other);
+  }
+  function toEpilogue() {
+    const ids: string[] = [];
+    for (const w of CAST_IDS) ids.push(...(investigation.read[w] ?? []));
+    setArchive(addToArchive(ids));
+    veil('エピローグへ', () => setScene('epilogue'));
+  }
+
+  return (
+    <div className={`app${narrow ? ' narrow' : ''}`}>
+      <div className="stage">
+        <div className="bar">
+          <h1>対決</h1>
+          <span className="sub">{layer.opponent.name}</span>
+          <span className="turns">残り <b>{debate.turnsLeft}</b> 手</span>
+        </div>
+
+        <details className="suspect" open>
+          <summary>
+            <span className="who">{layer.opponent.name}</span>
+            <span className="role">{layer.opponent.role}</span>
+          </summary>
+          <p>{layer.opponent.justification}</p>
+        </details>
+
+        <div className="walls">
+          {(['ronri', 'shinri'] as WallKind[]).map((k) => {
+            const w = wall(k); const done = debate.remaining[k] <= 0; const cur = debate.remaining[k];
+            const drop = k === target ? Math.min(pending, cur) : 0;
+            const known = w.weakThemes.filter((t) => knownWeak.includes(t));
+            return (
+              <div key={k} className={`wall ${k}${done ? ' done' : ''}${k === target && !done ? ' aim' : ''}`}
+                onClick={() => !done && setTarget(k)}>
+                <div className="label">
+                  <span>{k === 'ronri' ? '論理の壁' : '心理の壁'}</span>
+                  <span className="num">
+                    {done ? '崩れた' : <>{cur}{drop > 0 && <span className="drop"> → {Math.round((cur - drop) * 10) / 10}</span>} / {w.hardness}</>}
+                  </span>
+                </div>
+                <div className="gauge">
+                  <i className="pre" style={{ width: `${Math.max(0, (cur / w.hardness) * 100)}%` }} />
+                  <i className="cur" style={{ width: `${Math.max(0, ((cur - drop) / w.hardness) * 100)}%` }} />
+                </div>
+                <div className="known">
+                  {known.length > 0 ? `急所: ${known.map((t) => THEMES[t].label).join('・')}` : '急所はまだ見えない'}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="act">
+          <div className="read">
+            {!argument && <>手帳を1つと、書架から1〜3冊を選ぶ。</>}
+            {result && !result.ok && <span className="bad">{result.reason}</span>}
+            {result?.ok && (
+              <>
+                <span className="dmg">−{result.damage}</span>
+                {COMBO_LABEL[result.breakdown.kind]}
+                {result.breakdown.sharedThemes.length > 0 &&
+                  ` ／ 共有主題: ${result.breakdown.sharedThemes.map((t) => THEMES[t].label).join('・')}`}
+                {result.breakdown.notes.map((n, i) => <div key={i}>・{n}</div>)}
+              </>
+            )}
+          </div>
+          {over
+            ? <button className="go" onClick={toEpilogue}>結末を見る</button>
+            : <button className="go" onClick={commit} disabled={!result?.ok}>突きつける</button>}
+        </div>
+      </div>
+
+      <div className="hand">
+        <div className="two">
+          <div>
+            <h2 className="sec">手帳 — この事件の証拠</h2>
+            <div className="cards">
+              {notebook.map((n) => {
+                const times = debate.shown[n.id] ?? 0;
+                return (
+                  <button key={n.id} className={`card note${pickedNote === n.id ? ' on' : ''}`}
+                    onClick={() => setPickedNote(pickedNote === n.id ? null : n.id)} disabled={over}>
+                    <span className="lamp" />
+                    <div className="title">{n.label}</div>
+                    <div className="meta">
+                      {KIND_LABEL[n.kind]} ／ 確度{n.certainty} ／ {SHELVES[n.shelf].label}
+                      {times > 0 && <span className="used"> ／ {times}回出した</span>}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div>
+            <h2 className="sec">書架 — 土台になる知識</h2>
+            {byShelf.map(([shelf, list]) => (
+              <div className="shelfgroup" key={shelf}>
+                <div className="name">
+                  {SHELVES[shelf].label}
+                  {investigation.knownResistant.includes(shelf) && <span className="resist"> ／ 読み込まれている</span>}
+                </div>
+                <div className="cards">
+                  {list.map((b) => (
+                    <button key={b.id} className={`card d-${SHELVES[b.shelf].division}${pickedBooks.includes(b.id) ? ' on' : ''}`}
+                      onClick={() => toggleBook(b.id)} disabled={over}>
+                      <span className="lamp" />
+                      <div className="title">{b.title}</div>
+                      <div className="meta">
+                        威力{b.power} ／ {readersOf(investigation, b.id).map((w) => CAST[w].name).join('・')}
+                        {(debate.fatigue[b.shelf] ?? 0) > 0 && <span className="used"> ／ この棚は{debate.fatigue[b.shelf]}回目</span>}
+                      </div>
+                      <Themes themes={b.themes} weak={knownWeak} shared={shared} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="records">
+          <details open><summary>問答の記録</summary>
+            <div className="body">
+              {debate.log.length === 0 && <div>まだ何も言っていない。</div>}
+              {[...debate.log].reverse().map((e, i) => (
+                <div className={`entry${e.ok ? '' : ' miss'}`} key={i}>
+                  <span>{e.turn}手目 ／ {e.target === 'ronri' ? '論理' : '心理'} ／ {COMBO_LABEL[e.kind]}</span>
+                  <span>{e.ok ? `−${e.damage}` : '不成立'}</span>
+                </div>
+              ))}
+            </div>
+          </details>
+        </div>
+      </div>
+
+      {flash && (
+        <div className="overlay" onClick={() => setFlash(null)}>
+          <div className="panel">
+            <div className="portrait" style={portraitStyle(flash.speaker)} />
+            <div className="said">
+              <div className="name">{CAST[flash.speaker].name}</div>
+              <div className={`big${flash.result.damage === 0 ? ' zero' : ''}`}>
+                {flash.result.ok ? `−${flash.result.damage}` : '通じない'}
+              </div>
+              {flash.result.ok ? (
+                <>
+                  <div className="line">
+                    {COMBO_LABEL[flash.result.breakdown.kind]}
+                    {flash.result.breakdown.sharedThemes.length > 0 &&
+                      ` ／ 共有主題: ${flash.result.breakdown.sharedThemes.map((t) => THEMES[t].label).join('・')}`}
+                  </div>
+                  {flash.result.breakdown.notes.map((n, i) => <div className="line soft" key={i}>・{n}</div>)}
+                </>
+              ) : <div className="line">{flash.result.reason}</div>}
+              <div className="wallnow">
+                {flash.target === 'ronri' ? '論理の壁' : '心理の壁'} {flash.before} → <b>{flash.after}</b>
+                {flash.after <= 0 && '　崩れた'}
+              </div>
+              <div className="tap">画面をタップで閉じる</div>
+            </div>
+          </div>
+        </div>
+      )}
+      {curtain && <Curtain label={curtain.label} onGo={() => { const g = curtain.go; setCurtain(null); g(); }} />}
+    </div>
+  );
+}

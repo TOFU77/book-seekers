@@ -1,0 +1,27 @@
+{
+  "name": "hiiragi-shobo",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "古書店『柊書房』 — 読書の知識で人の思い込みを崩す一人用ブラウザRPG",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "tune": "tsx tools/tune.ts",
+    "simulate": "tsx tools/simulate.ts",
+    "fullcase": "tsx tools/fullcase.ts"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.4",
+    "@vitejs/plugin-react": "^6.0.5",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2",
+    "vite": "^8.2.0"
+  },
+  "dependencies": {
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8"
+  }
+}
