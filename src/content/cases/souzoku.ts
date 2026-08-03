@@ -118,7 +118,7 @@ export const SOUZOKU: Case = {
       },
       psych: {
         kind: 'shinri',
-        hardness: 55,
+        hardness: 65,
         weakThemes: ['kokuhaku', 'keisho'],
         resistantShelves: ['seken', 'tochi'],
       },

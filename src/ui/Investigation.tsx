@@ -35,6 +35,7 @@ export default function Investigation({
   layer,
   state,
   seed,
+  difficulty,
   onAdvance,
   onFinish,
   onGiveUp,
@@ -42,6 +43,8 @@ export default function Investigation({
   layer: Layer;
   state: InvestigationState;
   seed: string;
+  /** normal では書物カードに主題ではなく一行(gist)を示す。パターン照合ではなく推理にするため。 */
+  difficulty: 'easy' | 'normal';
   onAdvance: (
     next: InvestigationState,
     dayLog: string[],
@@ -215,11 +218,17 @@ export default function Investigation({
                     {b.title}
                     <span className="k">
                       {CAST[readerByBook.get(b.id)!].name}が読む ／ {SHELVES[b.shelf].label} 威力{b.power} ／{' '}
-                      {b.themes.map((t) => (
-                        <span key={t} className={state.knownWeak.includes(t) ? 'th weak' : 'th'}>
-                          {THEMES[t].label}
+                      {difficulty === 'easy' ? (
+                        b.themes.map((t) => (
+                          <span key={t} className={state.knownWeak.includes(t) ? 'th weak' : 'th'}>
+                            {THEMES[t].label}
+                          </span>
+                        ))
+                      ) : (
+                        <span className={b.themes.some((t) => state.knownWeak.includes(t)) ? 'gist weak' : 'gist'}>
+                          {b.gist}
                         </span>
-                      ))}
+                      )}
                     </span>
                   </button>
                 ))}

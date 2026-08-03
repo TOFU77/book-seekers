@@ -94,6 +94,8 @@ export default function App() {
   const [curtain, setCurtain] = useState<{ label: string; go: () => void } | null>(null);
   const [narrow, setNarrow] = useState(false);
   const [gothic, setGothic] = useState(false);
+  /** normal では書物カードの主題をgistに隠す。パターン照合ではなく推理にするため。既定はnormal。 */
+  const [difficulty, setDifficulty] = useState<'easy' | 'normal'>('normal');
   const [archive, setArchive] = useState<string[]>(() => loadArchive());
   const [carry, setCarry] = useState<Carry | null>(() => loadCarry());
   const [history, setHistory] = useState<History>(() => loadHistory());
@@ -148,6 +150,7 @@ export default function App() {
           <Title cases={CASES} archive={archive} onPick={beginCase}
             narrow={narrow} onToggleWidth={() => setNarrow((v) => !v)}
             gothic={gothic} onToggleFont={toggleFont}
+            difficulty={difficulty} onToggleDifficulty={() => setDifficulty((d) => (d === 'easy' ? 'normal' : 'easy'))}
             unlocked={unlocked} soloSolved={soloSolvedCount(history)} unlockAt={UNLOCK_THRESHOLD}
             onHistory={() => setScene('history')} />
         </div>
@@ -207,7 +210,7 @@ export default function App() {
           </details>
         </div>
         <div className="hand">
-          <Investigation layer={layer} state={inv} seed={runKey}
+          <Investigation layer={layer} state={inv} seed={runKey} difficulty={difficulty}
             onAdvance={(next, lines, who, dayActors) => {
               setInv(next);
               const dayNo = layer.days - inv.daysLeft + 1;
@@ -232,9 +235,11 @@ export default function App() {
                 <div className="name">{CAST[dayReport.who].name}の報告</div>
                 {dayReport.lines.map((l, i) => {
                   const salon = l.startsWith('座談');
+                  // 急所(weakTheme)判明は赤字にしない。耐性棚判明は引き続き強調色のまま。
+                  const salonWeak = salon && l.includes('に耐えられない');
                   const sub = l.startsWith(' ');
                   return (
-                    <p className={`mono${salon ? ' salon' : ''}${sub ? ' sub' : ''}`} key={i}>{l.trim()}</p>
+                    <p className={`mono${salon ? ' salon' : ''}${salonWeak ? ' weak' : ''}${sub ? ' sub' : ''}`} key={i}>{l.trim()}</p>
                   );
                 })}
                 {dayReport.banter.length > 0 && (
@@ -494,7 +499,13 @@ export default function App() {
                       威力{b.power} ／ {readersOf(investigation, b.id).map((w) => CAST[w].name).join('・')}
                       {(debate.fatigue[b.shelf] ?? 0) > 0 && <span className="used"> ／ この棚は{debate.fatigue[b.shelf]}回目</span>}
                     </div>
-                    <Themes themes={b.themes} weak={knownWeak} shared={shared} />
+                    {difficulty === 'easy' ? (
+                      <Themes themes={b.themes} weak={knownWeak} shared={shared} />
+                    ) : (
+                      <div className={b.themes.some((t) => knownWeak.includes(t)) ? 'gist weak' : 'gist'}>
+                        {b.gist}
+                      </div>
+                    )}
                   </button>
                 ))}
               </div>

@@ -125,7 +125,7 @@ export const TSUMITATE: Case = {
       },
       psych: {
         kind: 'shinri',
-        hardness: 58,
+        hardness: 68,
         // 誰も言わないという形の合意。沈黙の棚が要る。
         weakThemes: ['kokuhaku', 'keisho'],
         resistantShelves: ['tochi', 'seken', 'jinshin'],

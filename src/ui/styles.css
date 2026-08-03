@@ -165,8 +165,12 @@ h2.sec {
 .card.d-IV { border-left: 3px solid var(--shelf-iv); }
 
 .th { display: inline-block; margin-right: 5px; color: var(--ink-soft); }
-.th.weak { color: var(--accent); font-weight: 600; }
+.th.weak { font-weight: 700; }
 .th.shared { text-decoration: underline; text-underline-offset: 2px; }
+
+/* ノーマル難易度: 主題の代わりに一行(gist)を示す。急所と重なれば太字。 */
+.gist { font-size: 11px; color: var(--ink-soft); margin-top: 1px; }
+.gist.weak { font-weight: 700; color: var(--ink); }
 
 .note { width: 100%; max-width: none; margin-bottom: 4px; }
 
@@ -303,7 +307,7 @@ button.go.ghosty { background: var(--paper-deep); color: var(--ink); border: 1px
   border-bottom: 1px solid var(--rule); padding-bottom: 6px; margin-bottom: 10px;
 }
 .istatus .day { font-size: 15px; color: var(--ink); font-weight: 600; }
-.istatus .weak { color: var(--accent); }
+.istatus .weak { font-weight: 700; }
 button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 
 .crew { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
@@ -344,6 +348,8 @@ button.go.small { font-size: 13px; padding: 5px 14px; margin-left: auto; }
 .panel.finale .mono.salon {
   color: var(--accent); border-top: 1px solid var(--rule); padding-top: 8px; margin-top: 12px;
 }
+/* 急所(weakTheme)の判明は、耐性棚の判明と違って赤字にしない。ボールドのみ。 */
+.panel.finale .mono.salon.weak { color: var(--ink); font-weight: 700; }
 
 /* 座談の掛け合い — 事実の記録とは分けて、少し砕けた調子で置く */
 .banter {

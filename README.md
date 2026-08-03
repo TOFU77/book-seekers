@@ -16,7 +16,7 @@ npm install
 npm run dev
 ```
 
-ビルドは `npm run build`（`dist/` に出力）。
+`http://localhost:5173` を開いてください。ビルドは `npm run build`（`dist/` に出力）。
 
 GitHub Pages 用の設定は `github-workflows/` にあります（`base` 付きの `vite.config.ts` と
 `deploy.yml`）。`main` への push で自動ビルド・自動デプロイされます。

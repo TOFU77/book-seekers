@@ -41,6 +41,8 @@ export function Title({
   onToggleWidth,
   gothic,
   onToggleFont,
+  difficulty,
+  onToggleDifficulty,
   unlocked,
   soloSolved,
   unlockAt,
@@ -53,6 +55,8 @@ export function Title({
   onToggleWidth: () => void;
   gothic: boolean;
   onToggleFont: () => void;
+  difficulty: 'easy' | 'normal';
+  onToggleDifficulty: () => void;
   unlocked: boolean;
   soloSolved: number;
   unlockAt: number;
@@ -75,7 +79,15 @@ export function Title({
         <button className="ghost" onClick={onHistory}>履歴</button>
         <button className="ghost" onClick={onToggleFont}>{gothic ? '明朝体' : 'ゴシック体'}</button>
         <button className="ghost" onClick={onToggleWidth}>{narrow ? 'PC表示' : 'スマホ表示'}</button>
+        <button className="ghost" onClick={onToggleDifficulty}>
+          難易度: {difficulty === 'easy' ? 'イージー' : 'ノーマル'}
+        </button>
       </div>
+      {difficulty === 'normal' && (
+        <p className="lead soft">
+          ノーマル: 書物カードには主題を出さない。何が刺さるかは、一行の要約から推理する。
+        </p>
+      )}
 
       <p className="lead">
         衰退していく地方都市の、潰れかけた古書店。

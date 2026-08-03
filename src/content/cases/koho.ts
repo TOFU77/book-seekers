@@ -122,7 +122,7 @@ export const KOHO: Case = {
       psych: {
         kind: 'shinri',
         // 「書かなかっただけ」を崩すには、沈黙と編集の棚が要る
-        hardness: 60,
+        hardness: 70,
         weakThemes: ['kokuhaku', 'bunrui'],
         resistantShelves: ['shumi', 'jinshin', 'seken'],
       },

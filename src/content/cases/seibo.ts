@@ -121,7 +121,7 @@ export const SEIBO: Case = {
       },
       psych: {
         kind: 'shinri',
-        hardness: 55,
+        hardness: 65,
         // 「これは贈与であって取引ではない」という分類の物語
         weakThemes: ['bunrui', 'dairi'],
         resistantShelves: ['seken', 'tochi'],

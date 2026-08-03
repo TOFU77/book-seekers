@@ -120,7 +120,7 @@ export const SHINYO: Case = {
       },
       psych: {
         kind: 'shinri',
-        hardness: 58,
+        hardness: 68,
         weakThemes: ['dairi', 'kenri'],
         resistantShelves: ['kanjo', 'riho', 'seken'],
       },
