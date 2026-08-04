@@ -74,33 +74,40 @@ export function Title({
 
   return (
     <div className="title">
-      <div className="tbar">
-        <h1>柊書房</h1>
-        <button className="ghost" onClick={onHistory}>履歴</button>
-        <button className="ghost" onClick={onToggleFont}>{gothic ? '明朝体' : 'ゴシック体'}</button>
-        <button className="ghost" onClick={onToggleWidth}>{narrow ? 'PC表示' : 'スマホ表示'}</button>
-        <button className="ghost" onClick={onToggleDifficulty}>
-          難易度: {difficulty === 'easy' ? 'イージー' : 'ノーマル'}
-        </button>
-      </div>
-      {difficulty === 'normal' && (
-        <p className="lead soft">
-          ノーマル: 書物カードには主題を出さない。何が刺さるかは、一行の要約から推理する。
-        </p>
-      )}
+      <div className="thead">
+        <div className="tintro">
+          <div className="tbar">
+            <h1>柊書房</h1>
+            <button className="ghost" onClick={onHistory}>履歴</button>
+            <button className="ghost" onClick={onToggleFont}>{gothic ? '明朝体' : 'ゴシック体'}</button>
+            <button className="ghost" onClick={onToggleWidth}>{narrow ? 'PC表示' : 'スマホ表示'}</button>
+            <button className="ghost" onClick={onToggleDifficulty}>
+              難易度: {difficulty === 'easy' ? 'イージー' : 'ノーマル'}
+            </button>
+          </div>
+          {difficulty === 'normal' && (
+            <p className="lead soft">
+              ノーマル: 書物カードには主題を出さない。何が刺さるかは、一行の要約から推理する。
+            </p>
+          )}
 
-      <p className="lead">
-        静かな停滞を抱えた地方都市。その片隅に、斜陽の古書店がある。
-        ここに集まる五人の幼馴染が、町に持ち込まれる小さな醜聞を解いていく。
-      </p>
-      <p className="lead">
-        武器は棚の本だけである。証拠を突きつけても、人は自分の物語を手放さない。
-        離れた分野の本が同じことを言っていると気づいたときに、相手の言い分は崩れる。
-      </p>
-      <p className="lead">
-        調べものは誰にでもできる。それを見識に変えるには、
-        その本を読んだ人間が同席していなければならない。
-      </p>
+          <p className="lead">
+            静かな停滞を抱えた地方都市。その片隅に、斜陽の古書店がある。
+            ここに集まる五人の幼馴染が、町に持ち込まれる小さな醜聞を解いていく。
+          </p>
+          <p className="lead">
+            武器は棚の本だけである。証拠を突きつけても、人は自分の物語を手放さない。
+            離れた分野の本が同じことを言っていると気づいたときに、相手の言い分は崩れる。
+          </p>
+          <p className="lead">
+            調べものは誰にでもできる。それを見識に変えるには、
+            その本を読んだ人間が同席していなければならない。
+          </p>
+        </div>
+        <div className="tart" aria-hidden="true">
+          <img src="/img/bg-hiiragi.webp" alt="" />
+        </div>
+      </div>
 
       <h2 className="sec">事件を選ぶ</h2>
       <div className="caselist">
@@ -131,7 +138,7 @@ export function Title({
               <span key={b.id} className="ab">
                 {b.title}
                 <span className="at">
-                  {b.themes.map((t) => THEMES[t].label).join('・')}
+                  {difficulty === 'easy' ? b.themes.map((t) => THEMES[t].label).join('・') : b.gist}
                 </span>
               </span>
             ))}
@@ -239,9 +246,11 @@ export function Epilogue({
 
 export function CarryPick({
   read,
+  difficulty,
   onDone,
 }: {
   read: Partial<Record<CharacterId, string[]>>;
+  difficulty: 'easy' | 'normal';
   onDone: (sel: Partial<Record<CharacterId, string[]>>) => void;
 }) {
   // 同じ本を二人が読んでいても、持ち越しは一冊。最初に読んだ者を持ち主とする。
@@ -303,9 +312,13 @@ export function CarryPick({
                   <div className="meta">
                     {SHELVES[b.shelf].label} ／ 威力{b.power}
                   </div>
-                  <div className="themes">
-                    {b.themes.map((t) => <span key={t} className="th">{THEMES[t].label}</span>)}
-                  </div>
+                  {difficulty === 'easy' ? (
+                    <div className="themes">
+                      {b.themes.map((t) => <span key={t} className="th">{THEMES[t].label}</span>)}
+                    </div>
+                  ) : (
+                    <div className="gist">{b.gist}</div>
+                  )}
                 </button>
               );
             })}

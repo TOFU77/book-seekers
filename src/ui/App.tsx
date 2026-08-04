@@ -305,6 +305,7 @@ export default function App() {
         <div className="scroll">
           <CarryPick
             read={session.investigation.read}
+            difficulty={difficulty}
             onDone={(sel) => { setCarry(sel); saveCarry(sel); veil('柊書房へ', toTitle); }}
           />
         </div>
