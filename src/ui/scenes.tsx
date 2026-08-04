@@ -14,7 +14,12 @@ export const PORTRAIT_ORDER: CharacterId[] = [
 ];
 export function portraitStyle(who: CharacterId) {
   const i = PORTRAIT_ORDER.indexOf(who);
-  return { backgroundPositionX: `${(i / (PORTRAIT_ORDER.length - 1)) * 100}%` };
+  return {
+    // public/ の画像は base でプレフィックスされないので、ここで組み立てる。
+    // CSS の url('/img/...') は base 配下(GitHub Pagesのサブパス等)で壊れるため使わない。
+    backgroundImage: `url(${import.meta.env.BASE_URL}img/char-main-0.png)`,
+    backgroundPositionX: `${(i / (PORTRAIT_ORDER.length - 1)) * 100}%`,
+  };
 }
 
 /** 場面の切れ目。ゲームの側が次の場面を告げ、押して進む。 */
@@ -105,7 +110,7 @@ export function Title({
           </p>
         </div>
         <div className="tart" aria-hidden="true">
-          <img src="/img/bg-hiiragi.webp" alt="" />
+          <img src={`${import.meta.env.BASE_URL}img/bg-hiiragi.webp`} alt="" />
         </div>
       </div>
 

@@ -197,7 +197,7 @@ h2.sec {
 }
 .portrait {
   flex: 0 0 168px;
-  background-image: url('/img/char-main-0.png');
+  /* background-image は portraitStyle() がインラインで付与する(base対応のため) */
   background-size: 500% auto;
   background-repeat: no-repeat;
   background-color: #111;
@@ -322,7 +322,7 @@ blockquote.epi.big { font-size: 14px; margin: 16px 0; padding-left: 14px; border
 .side { border: 1px solid var(--rule); background: var(--card); padding: 10px 12px; }
 .side .sw { font-size: 13px; font-weight: 600; margin-top: 6px; }
 .side p { font-size: 13px; min-height: 4.5em; }
-.portrait.small { height: 120px; background-size: 500% auto; background-image: url('/img/char-main-0.png'); background-repeat: no-repeat; }
+.portrait.small { height: 120px; background-size: 500% auto; background-repeat: no-repeat; }
 button.go.ghosty { background: var(--paper-deep); color: var(--ink); border: 1px solid var(--rule); }
 
 /* ══ 捜査 ══ */
